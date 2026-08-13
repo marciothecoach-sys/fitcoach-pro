@@ -3531,9 +3531,12 @@ function modalAppAluno(id) {
 /* Abre o app do aluno ao lado. Funciona quando os dois arquivos estão na mesma
    pasta (ou no mesmo endereço, quando publicados). */
 function abrirAppAluno() {
-  const base = location.href.replace(/[^/]*$/, '');
-  const nomes = ['aluno.html', 'FitCoach Aluno.html'];
-  window.open(base + encodeURIComponent(nomes[location.pathname.indexOf('personal.html') >= 0 ? 0 : 1]).replace(/%2F/g, '/'), '_blank');
+  const base = location.href.split('?')[0].split('#')[0].replace(/[^/]*$/, '');
+  // Hospedagens como o Netlify servem /personal em vez de /personal.html;
+  // por isso a checagem é pelo nome, não pela extensão.
+  const ehPublicado = /personal/i.test(location.pathname);
+  const alvo = ehPublicado ? 'aluno.html' : 'FitCoach Aluno.html';
+  window.open(base + encodeURIComponent(alvo), '_blank');
 }
 
 function waConvite(id) {
