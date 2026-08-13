@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0A0E13">
+<title>FitCoach Aluno</title>
+<style>
+:root{
+  --bg:#0A0E13; --surface:#121A22; --surface2:#18232E; --surface3:#1F2C39;
+  --border:#25343F; --border2:#31424F;
+  --text:#E8F0F7; --muted:#93A7B8; --muted2:#6B8098;
+  --accent:#C6FF3D; --accent-ink:#0A0E13;
+  --green:#37D99A; --red:#FF5F6D; --amber:#FFB13D; --blue:#4FA8FF;
+  --r:16px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;min-height:100%}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+  font-size:16px;line-height:1.5;padding-bottom:96px;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:16px}
+
+/* topo */
+.top{
+  position:sticky;top:0;z-index:20;background:rgba(10,14,19,.94);backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;gap:12px
+}
+.top .av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#C6FF3D,#37D99A);color:#0A0E13;display:grid;place-items:center;font-weight:800;font-size:14px;flex:0 0 38px}
+.top b{display:block;font-size:15.5px;line-height:1.2;letter-spacing:-.2px}
+.top span{font-size:12px;color:var(--muted2)}
+.top .acao{margin-left:auto}
+
+/* botões */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 18px;border-radius:12px;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-weight:600;font-size:15px;
+  cursor:pointer;transition:.15s
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn-green{background:var(--green);color:#04231A;border-color:var(--green);font-weight:700}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn-block{width:100%}
+.btn-sm{padding:8px 13px;font-size:13.5px;border-radius:10px}
+.btn:disabled{opacity:.45}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.card h2{margin:0 0 4px;font-size:18px;letter-spacing:-.3px}
+.card h3{margin:0 0 12px;font-size:15px}
+.lbl{font-size:11.5px;text-transform:uppercase;letter-spacing:.7px;color:var(--muted2);font-weight:700}
+
+.inp{width:100%;padding:13px 14px;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;outline:none}
+.inp:focus{border-color:var(--accent)}
+textarea.inp{min-height:90px;resize:vertical}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px}
+
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:11.5px;font-weight:700}
+.t-green{background:rgba(55,217,154,.14);color:var(--green)}
+.t-red{background:rgba(255,95,109,.14);color:var(--red)}
+.t-amber{background:rgba(255,177,61,.14);color:var(--amber)}
+.t-blue{background:rgba(79,168,255,.14);color:var(--blue)}
+.t-accent{background:rgba(198,255,61,.15);color:var(--accent)}
+.t-gray{background:var(--surface3);color:var(--muted)}
+
+.alert{padding:13px 15px;border-radius:12px;font-size:14px;display:flex;gap:10px;align-items:flex-start;line-height:1.5;margin-bottom:14px}
+.a-red{background:rgba(255,95,109,.1);border:1px solid rgba(255,95,109,.3);color:#FFB3B9}
+.a-amber{background:rgba(255,177,61,.09);border:1px solid rgba(255,177,61,.28);color:#FFD79B}
+.a-blue{background:rgba(79,168,255,.09);border:1px solid rgba(79,168,255,.28);color:#B9DAFF}
+.a-green{background:rgba(55,217,154,.09);border:1px solid rgba(55,217,154,.28);color:#A5EED2}
+.alert b{color:#fff}
+
+.bar{height:8px;background:var(--surface3);border-radius:6px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:6px;transition:width .35s}
+
+/* seleção de treino */
+.sess-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;transition:.15s
+}
+.sess-card:active{background:var(--surface2)}
+.sess-num{
+  width:46px;height:46px;border-radius:13px;background:var(--surface3);display:grid;place-items:center;
+  font-size:19px;font-weight:800;color:var(--accent);flex:0 0 46px
+}
+.sess-card.feito .sess-num{background:rgba(55,217,154,.15);color:var(--green)}
+.sess-card b{display:block;font-size:15.5px;letter-spacing:-.2px}
+.sess-card span{font-size:12.5px;color:var(--muted2)}
+
+/* execução */
+.ex{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.ex.done{opacity:.62}
+.ex-h{padding:15px 16px;display:flex;align-items:flex-start;gap:12px}
+.ex-n{width:28px;height:28px;border-radius:9px;background:var(--surface3);display:grid;place-items:center;font-size:12.5px;font-weight:800;color:var(--muted);flex:0 0 28px}
+.ex.done .ex-n{background:var(--green);color:#04231A}
+.ex-h b{display:block;font-size:15.5px;line-height:1.3;letter-spacing:-.2px}
+.ex-h span{font-size:12.5px;color:var(--muted2)}
+.presc{display:flex;gap:8px;padding:0 16px 13px;flex-wrap:wrap}
+.presc div{background:var(--surface2);border-radius:9px;padding:7px 11px;text-align:center;flex:1;min-width:62px}
+.presc small{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700}
+.presc b{font-size:14.5px}
+.serie{display:flex;align-items:center;gap:9px;padding:11px 16px;border-top:1px solid var(--border)}
+.serie-n{font-size:12px;font-weight:800;color:var(--muted2);width:26px;flex:0 0 26px}
+.serie input{
+  width:100%;padding:11px 8px;background:var(--surface2);border:1px solid var(--border2);border-radius:10px;
+  text-align:center;font-weight:700;font-size:16px;outline:none
+}
+.serie input:focus{border-color:var(--accent)}
+.serie .un{font-size:11px;color:var(--muted2);flex:0 0 auto;margin-left:-4px}
+.serie.ok input{border-color:rgba(55,217,154,.5);background:rgba(55,217,154,.07)}
+.chk{
+  width:42px;height:42px;flex:0 0 42px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);
+  display:grid;place-items:center;cursor:pointer;color:var(--muted2)
+}
+.chk.on{background:var(--green);border-color:var(--green);color:#04231A}
+.obs-ex{padding:0 16px 13px;font-size:12.5px;color:var(--amber);line-height:1.45}
+.ult{padding:0 16px 12px;font-size:12.5px;color:var(--muted2)}
+.ult b{color:var(--text)}
+
+/* cronômetro */
+.timer{
+  position:fixed;left:0;right:0;bottom:78px;z-index:40;display:none;justify-content:center;pointer-events:none
+}
+.timer.on{display:flex}
+.timer-in{
+  background:var(--surface3);border:1px solid var(--accent);border-radius:16px;padding:12px 18px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:auto;
+  animation:up .2s
+}
+@keyframes up{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+.timer-in .n{font-size:26px;font-weight:800;letter-spacing:-1px;font-variant-numeric:tabular-nums;color:var(--accent);min-width:62px;text-align:center}
+.timer-in.fim{border-color:var(--green)}
+.timer-in.fim .n{color:var(--green)}
+
+/* barra inferior */
+.tabbar{
+  position:fixed;bottom:0;left:0;right:0;height:72px;background:var(--surface);border-top:1px solid var(--border);
+  z-index:50;display:flex;padding-bottom:env(safe-area-inset-bottom)
+}
+.tabbar button{
+  flex:1;background:none;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:4px;color:var(--muted2);font-size:11px;font-weight:600;cursor:pointer
+}
+.tabbar button.on{color:var(--accent)}
+
+.stat{display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border);font-size:14.5px}
+.stat:last-child{border-bottom:none}
+.stat span{color:var(--muted)}
+.stat b{font-weight:700}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.empty{text-align:center;padding:40px 16px;color:var(--muted2)}
+.empty b{display:block;color:var(--muted);font-size:15px;margin-bottom:4px}
+.divider{height:1px;background:var(--border);margin:16px 0}
+.row{display:flex;gap:10px;align-items:center}
+.row>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 14px;border-radius:22px;background:var(--surface2);border:1px solid var(--border2);font-size:14px;font-weight:600;cursor:pointer;color:var(--muted)}
+.chip.on{background:rgba(198,255,61,.14);border-color:var(--accent);color:var(--accent)}
+.escala{display:flex;gap:5px}
+.escala div{
+  flex:1;padding:11px 0;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border2);
+  font-weight:700;cursor:pointer;font-size:14px;color:var(--muted2)
+}
+.escala div.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.escala.dor div.on{background:var(--red);color:#fff;border-color:var(--red)}
+.toasts{position:fixed;bottom:88px;left:12px;right:12px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface3);border:1px solid var(--border2);border-left:3px solid var(--accent);padding:13px 16px;border-radius:12px;font-size:14.5px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.ok{border-left-color:var(--green)}
+.toast.err{border-left-color:var(--red)}
+.logo{width:52px;height:52px;border-radius:15px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:20px;margin:0 auto 16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="timer" id="timer"></div>
+<nav class="tabbar" id="tabbar" style="display:none"></nav>
+<div class="toasts" id="toasts"></div>
+<script>
+/* ============================================================
+   FITCOACH ALUNO — app do aluno
+   No produto final, o Firestore entrega a ficha em tempo real.
+   Aqui o pacote chega como código, para funcionar 100% offline.
+   ============================================================ */
+var _mem = {};
+var Store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : (k in _mem ? _mem[k] : d); } catch (e) { return (k in _mem) ? _mem[k] : d; } },
+  set(k, v) { _mem[k] = v; try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } }
+};
+const $ = s => document.querySelector(s);
+const uid = p => (p || 'id') + '_' + Math.random().toString(36).slice(2, 9);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+const DIAS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function hoje() { return iso(new Date()); }
+function dtx(s) { const p = String(s).split('-'); return new Date(+p[0], +p[1] - 1, +p[2]); }
+function fmtData(s) { const d = dtx(s); return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+function fmtCurto(s) { const d = dtx(s); return d.getDate() + ' ' + MESES[d.getMonth()]; }
+function addDays(s, n) { const d = dtx(s); d.setDate(d.getDate() + n); return iso(d); }
+function diasEntre(a, b) { return Math.round((dtx(b) - dtx(a)) / 86400000); }
+function inicials(n) { const p = String(n).trim().split(/\s+/); return ((p[0] || '')[0] + (p[1] || '')[0] || '').toUpperCase().slice(0, 2); }
+function b64enc(o) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))); }
+function b64dec(s) { return JSON.parse(decodeURIComponent(escape(atob(String(s).replace(/\s/g, ''))))); }
+function toast(m, t) {
+  const el = document.createElement('div'); el.className = 'toast ' + (t || ''); el.textContent = m;
+  $('#toasts').appendChild(el);
+  setTimeout(() => { el.style.transition = '.3s'; el.style.opacity = 0; setTimeout(() => el.remove(), 300); }, 3000);
+}
+function icon(n, s) {
+  s = s || 20;
+  const P = {
+    home: '<path d="M3 10.5L12 3l9 7.5V21H14v-6h-4v6H3z"/>',
+    dumbbell: '<path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/>',
+    chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+    doc: '<path d="M6 2h8l5 5v15H6z"/><path d="M14 2v5h5"/><path d="M9 13h7M9 17h7"/>',
+    check: '<path d="M4 12.5l5 5L20 6.5"/>',
+    x: '<path d="M6 6l12 12M18 6L6 18"/>',
+    clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.4 2"/>',
+    fire: '<path d="M12 22c4 0 7-2.7 7-6.5 0-4.5-4.5-6-4.5-10C11 7 12 9 10 11c-1 1-1.5-.5-1.5-2C6.5 11 5 13 5 15.5 5 19.3 8 22 12 22z"/>',
+    shield: '<path d="M12 3l8 3v6c0 5-3.4 8.2-8 9-4.6-.8-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+    send: '<path d="M21 3L3 10.5l7 3 3 7z"/><path d="M21 3l-11 11"/>',
+    back: '<path d="M15 5l-7 7 7 7"/>',
+    play: '<path d="M7 4l13 8-13 8z"/>',
+    pause: '<path d="M8 4v16M16 4v16"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    alert: '<path d="M12 3l9.5 17H2.5z"/><path d="M12 9.5v4.5M12 17.5h.01"/>',
+    whatsapp: '<path d="M3 21l1.7-5.1A8.4 8.4 0 1121 12a8.4 8.4 0 01-12.9 7.2z"/>',
+    copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 012-2h10"/>',
+    star: '<path d="M12 3.5l2.6 5.6 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.9l6-.8z"/>',
+    trophy: '<path d="M8 4h8v5a4 4 0 01-8 0z"/><path d="M8 6H5v1a3 3 0 003 3M16 6h3v1a3 3 0 01-3 3"/><path d="M10 15h4M9 21h6M12 15v6"/>'
+  };
+  return '<svg width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + (P[n] || '') + '</svg>';
+}
+
+/* ---------- estado ---------- */
+var APP = Store.get('fitcoach_aluno', null);
+var TELA = 'hoje', SESSAO = null, EXEC = null, CRONO = null;
+function salvar() { Store.set('fitcoach_aluno', APP); }
+
+/* ---------- histórico ---------- */
+function regsDe(ex) {
+  return (APP.registros || []).filter(r => !ex || r.exercicio === ex).sort((a, b) => a.data.localeCompare(b.data));
+}
+function ultimaCarga(ex) {
+  const r = regsDe(ex);
+  return r.length ? r[r.length - 1] : null;
+}
+function recorde(ex) {
+  const r = regsDe(ex);
+  if (!r.length) return null;
+  let m = 0, d = '';
+  r.forEach(x => x.series.forEach(s => { if (+s.carga > m) { m = +s.carga; d = x.data; } }));
+  return m ? { carga: m, data: d } : null;
+}
+function tonelagem(r) { return r.series.reduce((s, x) => s + (+x.carga || 0) * (+x.reps || 0), 0); }
+function sessoesFeitasNaSemana() {
+  const ini = addDays(hoje(), -6);
+  const datas = new Set(regsDe().filter(r => r.data >= ini).map(r => r.data));
+  return datas.size;
+}
+function ultimaVezSessao(i) {
+  const r = regsDe().filter(x => x.sessaoIndex === i);
+  return r.length ? r[r.length - 1].data : null;
+}
+
+/* ============================================================
+   TELA DE ENTRADA
+   ============================================================ */
+function telaLogin(erro) {
+  $('#tabbar').style.display = 'none';
+  $('#app').innerHTML = `
+  <div class="wrap" style="padding-top:44px">
+    <div class="logo">FC</div>
+    <h1 style="text-align:center;margin:0 0 6px;font-size:24px;letter-spacing:-.6px">FitCoach Aluno</h1>
+    <p style="text-align:center;color:var(--muted2);margin:0 0 28px;font-size:14.5px">Seu treino, sua carga, sua evolução.</p>
+    ${erro ? `<div class="alert a-red">${icon('alert')}<div>${esc(erro)}</div></div>` : ''}
+    <div class="card">
+      <h3>Entrar com seu código</h3>
+      <div class="field">
+        <label>Código de acesso que o personal te passou</label>
+        <input class="inp mono" id="codigo" maxlength="10" autocapitalize="characters" autocomplete="off"
+          style="text-transform:uppercase;font-size:22px;font-weight:800;letter-spacing:3px;text-align:center"
+          placeholder="ABC1234" onkeydown="if(event.key==='Enter')entrarPorCodigo()">
+      </div>
+      <button class="btn btn-primary btn-block" onclick="entrarPorCodigo()">${icon('check', 18)} Acessar meu treino</button>
+    </div>
+    <div class="card">
+      <h3>Recebeu um pacote pelo WhatsApp?</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 12px;line-height:1.55">
+        Se você está entrando de outro celular, cole aqui o texto longo que o personal enviou.</p>
+      <div class="field">
+        <textarea class="inp mono" id="pacote" style="font-size:11.5px;min-height:96px" placeholder="Cole o pacote de acesso"></textarea>
+      </div>
+      <button class="btn btn-block" onclick="entrar()">${icon('send', 18)} Entrar com o pacote</button>
+    </div>
+    <div class="card">
+      <h3>Ainda não tem acesso?</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 14px;line-height:1.55">
+        Peça para o seu personal abrir a sua ficha no FitCoach Pro e tocar em <b style="color:var(--text)">App do aluno</b>.</p>
+      <button class="btn btn-block" onclick="demo()">${icon('play', 18)} Ver uma demonstração</button>
+    </div>
+  </div>`;
+  setTimeout(() => { const i = document.getElementById('codigo'); if (i) i.focus(); }, 80);
+}
+
+/* Entrada por código: procura o pacote publicado pelo app do personal neste
+   mesmo navegador. Em produção isso é uma consulta ao Firestore. */
+function entrarPorCodigo() {
+  const c = (document.getElementById('codigo').value || '').trim().toUpperCase();
+  if (!c) { toast('Digite o código.', 'err'); return; }
+  const pac = Store.get('fitcoach_pacote_' + c, null);
+  if (!pac) {
+    telaLogin('Não encontrei o código ' + c + ' neste aparelho. Se o personal te mandou o pacote pelo WhatsApp, cole ele no campo abaixo.');
+    return;
+  }
+  entrar(pac);
+}
+function entrar(valor) {
+  const v = (valor != null ? valor : $('#pacote').value).trim();
+  if (!v) { toast('Cole o código primeiro.', 'err'); return; }
+  let p;
+  try { p = b64dec(v); } catch (e) { telaLogin('Código inválido — copie o texto inteiro, sem cortar nada.'); return; }
+  if (!p || !p.aluno || !p.treino) { telaLogin('Esse código não contém uma ficha de treino. Peça para o personal gerar de novo.'); return; }
+  APP = {
+    personal: p.personal, aluno: p.aluno, treino: p.treino,
+    registros: (p.historico || []).map(h => ({ id: uid('rg'), data: h.data, exercicio: h.exercicio, series: h.series, sessaoIndex: 0, pse: 0, dor: 0, obs: '' })),
+    novos: [], recebidoEm: hoje()
+  };
+  salvar(); TELA = 'hoje'; render();
+  toast('Bem-vindo, ' + p.aluno.nome.split(' ')[0] + '!', 'ok');
+}
+function demo() {
+  APP = {
+    personal: { nome: 'Márcio Coach', assinatura: 'Márcio Coach · CREF 123456-G/SP', phone: '11999990000' },
+    aluno: {
+      id: 'al_demo', nome: 'Juliana Marques', codigo: 'JUL4821', objetivo: 'hipertrofia', nivel: 'intermediario',
+      restricoes: [{ label: 'Ombro (manguito rotador, impacto)', nota: 'Sem elevação acima da linha da cabeça na fase aguda. Pegada neutra sempre que possível. Incluir rotadores externos e serrátil no aquecimento.' }]
+    },
+    treino: {
+      titulo: 'Periodização Hipertrofia — ABCD', divisao: 'ABCD', metodologia: 'Hipertrofia — padrão da casa',
+      semanas: 8, cadencia: '2-0-1-0', rir: 2,
+      progressao: 'Dupla progressão: chegou no topo da faixa de repetições em todas as séries, sobe a carga (2,5 a 5 kg) e volta para a base da faixa.',
+      alertas: [{ titulo: 'Ombro (manguito rotador, impacto)', texto: 'Sem elevação acima da linha da cabeça na fase aguda. Pegada neutra sempre que possível.' }],
+      sessoes: [
+        {
+          nome: 'Treino A — Peito e tríceps', duracaoEstimada: 58,
+          aquecimento: ['5 a 8 min de cardio leve', 'Alongamento dinâmico de ombro — 2x10'],
+          cardio: { texto: 'Esteira — caminhada inclinada — 15 min, intensidade moderada contínua', momento: 'ao final da sessão' },
+          exercicios: [
+            { nome: 'Supino reto com halteres', grupo: 'peito', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: 'Exercício principal da sessão — 2 séries de aproximação antes.' },
+            { nome: 'Supino inclinado com halteres', grupo: 'peito', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: '' },
+            { nome: 'Crucifixo na máquina (Peck deck)', grupo: 'peito', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Crossover no cabo', grupo: 'peito', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Tríceps na polia com corda', grupo: 'triceps', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Tríceps na polia com barra reta', grupo: 'triceps', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Prancha isométrica', grupo: 'core', series: 3, repeticoes: '30-45s', descanso_seg: 60, rir: 2, obs: '' }
+          ]
+        },
+        {
+          nome: 'Treino B — Costas e bíceps', duracaoEstimada: 60,
+          aquecimento: ['5 a 8 min de cardio leve', 'Mobilidade torácica (cat-camel) — 2x10'],
+          cardio: { texto: 'Bicicleta ergométrica — 15 min, intensidade moderada contínua', momento: 'ao final da sessão' },
+          exercicios: [
+            { nome: 'Puxada frontal na polia', grupo: 'costas', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: 'Exercício principal da sessão — 2 séries de aproximação antes.' },
+            { nome: 'Remada baixa no cabo (triângulo)', grupo: 'costas', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: '' },
+            { nome: 'Remada unilateral com halter (serrote)', grupo: 'costas', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Pulldown com braços estendidos', grupo: 'costas', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Rosca alternada com halteres', grupo: 'biceps', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Rosca martelo', grupo: 'biceps', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' }
+          ]
+        },
+        {
+          nome: 'Treino C — Pernas completo', duracaoEstimada: 62,
+          aquecimento: ['5 a 8 min de cardio leve', 'Mobilidade de quadril (90/90) — 2x12'],
+          cardio: { texto: 'Elíptico — 15 min, intensidade moderada contínua', momento: 'ao final da sessão' },
+          exercicios: [
+            { nome: 'Leg press 45°', grupo: 'quadriceps', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: 'Exercício principal da sessão — 2 séries de aproximação antes.' },
+            { nome: 'Cadeira extensora', grupo: 'quadriceps', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Mesa flexora', grupo: 'posterior', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Elevação pélvica (hip thrust)', grupo: 'gluteo', series: 4, repeticoes: '8-12', descanso_seg: 90, rir: 2, obs: '' },
+            { nome: 'Cadeira abdutora', grupo: 'gluteo', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Panturrilha sentado', grupo: 'panturrilha', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' }
+          ]
+        },
+        {
+          nome: 'Treino D — Ombros e core', duracaoEstimada: 55,
+          aquecimento: ['5 a 8 min de cardio leve', 'Rotação externa com elástico — 2x15'],
+          cardio: { texto: 'Esteira — caminhada inclinada — 15 min, intensidade moderada contínua', momento: 'ao final da sessão' },
+          exercicios: [
+            { nome: 'Elevação lateral com halteres', grupo: 'ombro', series: 4, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: 'Sem passar da linha do ombro.' },
+            { nome: 'Elevação lateral na polia', grupo: 'ombro', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Crucifixo inverso na máquina', grupo: 'ombro', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Face pull na polia', grupo: 'ombro', series: 3, repeticoes: '12-15', descanso_seg: 60, rir: 2, obs: 'Foco em rotação externa.' },
+            { nome: 'Encolhimento com halteres', grupo: 'trapezio', series: 3, repeticoes: '10-15', descanso_seg: 60, rir: 2, obs: '' },
+            { nome: 'Pallof press no cabo', grupo: 'core', series: 3, repeticoes: '12-15', descanso_seg: 60, rir: 2, obs: '' }
+          ]
+        }
+      ]
+    },
+    registros: [], novos: [], recebidoEm: hoje()
+  };
+  // histórico fictício de 6 semanas para a demonstração fazer sentido
+  const base = { 'Supino reto com halteres': [20, 1], 'Puxada frontal na polia': [40, 2.5], 'Leg press 45°': [90, 7.5], 'Elevação pélvica (hip thrust)': [50, 5], 'Elevação lateral com halteres': [6, .5] };
+  Object.keys(base).forEach(ex => {
+    for (let s = 5; s >= 0; s--) {
+      const c = base[ex][0] + base[ex][1] * (5 - s);
+      APP.registros.push({ id: uid('rg'), data: addDays(hoje(), -(s * 7 + 2)), exercicio: ex, sessaoIndex: 0, pse: 7, dor: 0, obs: '', series: [{ carga: c, reps: 12, rir: 3 }, { carga: c, reps: 10, rir: 2 }, { carga: c, reps: 8, rir: 1 }] });
+    }
+  });
+  salvar(); TELA = 'hoje'; render();
+  toast('Modo demonstração ativado.', 'ok');
+}
+function sair() {
+  if (!confirm('Sair e apagar os dados deste aparelho?')) return;
+  APP = null; try { localStorage.removeItem('fitcoach_aluno'); } catch (e) { } _mem = {};
+  render();
+}
+/* ============================================================
+   NAVEGAÇÃO
+   ============================================================ */
+function go(t) { TELA = t; window.scrollTo(0, 0); render(); }
+
+function render() {
+  if (!APP) { telaLogin(); return; }
+  const tabs = [['hoje', 'Treinar', 'dumbbell'], ['ficha', 'Minha ficha', 'doc'], ['evolucao', 'Evolução', 'chart']];
+  $('#tabbar').style.display = EXEC ? 'none' : 'flex';
+  $('#tabbar').innerHTML = tabs.map(t => `<button class="${TELA === t[0] ? 'on' : ''}" onclick="go('${t[0]}')">${icon(t[2], 22)}${t[1]}</button>`).join('');
+  if (EXEC) { telaExecucao(); return; }
+  const topo = `
+  <div class="top">
+    <div class="av">${inicials(APP.aluno.nome)}</div>
+    <div style="min-width:0">
+      <b>${esc(APP.aluno.nome.split(' ').slice(0, 2).join(' '))}</b>
+      <span>${cap(APP.aluno.objetivo)} · com ${esc(APP.personal.nome)}</span>
+    </div>
+    <button class="btn btn-sm btn-ghost acao" onclick="sair()">${icon('x', 18)}</button>
+  </div>`;
+  $('#app').innerHTML = topo + '<div class="wrap">' + (TELA === 'hoje' ? telaHoje() : TELA === 'ficha' ? telaFicha() : telaEvolucao()) + '</div>';
+}
+
+/* ============================================================
+   HOJE — escolher a sessão
+   ============================================================ */
+function telaHoje() {
+  const t = APP.treino;
+  const feitas = sessoesFeitasNaSemana();
+  const meta = t.sessoes.length;
+  const pend = (APP.novos || []).length;
+  const d = new Date();
+
+  return `
+  <div class="card" style="background:linear-gradient(160deg,#18232E,#121A22)">
+    <div class="lbl">${DIAS[d.getDay()]}, ${d.getDate()} de ${['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'][d.getMonth()]}</div>
+    <h2 style="margin:8px 0 14px">${feitas >= meta ? 'Semana fechada. Mandou bem.' : feitas === 0 ? 'Bora começar a semana?' : 'Faltam ' + (meta - feitas) + ' treino(s) essa semana'}</h2>
+    <div class="bar"><i style="width:${Math.min(100, Math.round(feitas / meta * 100))}%"></i></div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted2)">
+      <span>${feitas} de ${meta} sessões</span><span>${Math.min(100, Math.round(feitas / meta * 100))}%</span>
+    </div>
+  </div>
+
+  ${pend ? `<div class="alert a-amber">${icon('alert')}
+    <div style="flex:1"><b>${pend} treino(s) ainda não enviados</b> para ${esc(APP.personal.nome)}.</div>
+    <button class="btn btn-sm" onclick="telaEnviar()">Enviar</button></div>` : ''}
+
+  ${(APP.treino.alertas || []).length ? `<div class="alert a-red">${icon('shield')}
+    <div>${APP.treino.alertas.map(a => '<b>' + esc(a.titulo) + ':</b> ' + esc(a.texto)).join('<br>')}</div></div>` : ''}
+
+  <div class="lbl" style="margin:22px 0 10px">Escolha o treino de hoje</div>
+  ${t.sessoes.map((s, i) => {
+    const ult = ultimaVezSessao(i);
+    const letra = (s.nome.match(/Treino ([A-F])/) || [null, String.fromCharCode(65 + i)])[1];
+    return `<div class="sess-card ${ult === hoje() ? 'feito' : ''}" onclick="iniciar(${i})">
+      <div class="sess-num">${letra}</div>
+      <div style="flex:1;min-width:0">
+        <b>${esc(s.nome.replace(/^Treino [A-F] — /, ''))}</b>
+        <span>${s.exercicios.length} exercícios · ~${s.duracaoEstimada || 55} min${ult ? ' · última vez em ' + fmtData(ult) : ' · nunca feito'}</span>
+      </div>
+      ${ult === hoje() ? `<span class="tag t-green">${icon('check', 13)} hoje</span>` : icon('play', 20)}
+    </div>`;
+  }).join('')}
+
+  <div class="card" style="margin-top:8px">
+    <h3>${icon('trophy', 18)} Seus recordes</h3>
+    ${(() => {
+      const exs = Array.from(new Set(regsDe().map(r => r.exercicio)));
+      if (!exs.length) return '<div class="empty">Registre seu primeiro treino para começar a acompanhar.</div>';
+      return exs.slice(0, 5).map(e => { const r = recorde(e); return r ? `<div class="stat"><span>${esc(e)}</span><b>${r.carga} kg</b></div>` : ''; }).join('');
+    })()}
+  </div>`;
+}
+
+/* ============================================================
+   EXECUÇÃO DO TREINO
+   ============================================================ */
+function iniciar(i) {
+  const s = APP.treino.sessoes[i];
+  EXEC = {
+    sessaoIndex: i, inicio: Date.now(),
+    exercicios: s.exercicios.map(e => ({
+      nome: e.nome, grupo: e.grupo, prescrito: e,
+      series: Array.from({ length: e.series }, () => ({ carga: '', reps: '', feito: false }))
+    }))
+  };
+  const u = {};
+  EXEC.exercicios.forEach(x => { const l = ultimaCarga(x.nome); if (l) u[x.nome] = l; });
+  EXEC.ultimas = u;
+  window.scrollTo(0, 0); render();
+}
+
+function telaExecucao() {
+  const s = APP.treino.sessoes[EXEC.sessaoIndex];
+  const total = EXEC.exercicios.reduce((a, e) => a + e.series.length, 0);
+  const feitas = EXEC.exercicios.reduce((a, e) => a + e.series.filter(x => x.feito).length, 0);
+  const min = Math.round((Date.now() - EXEC.inicio) / 60000);
+
+  $('#app').innerHTML = `
+  <div class="top">
+    <button class="btn btn-sm btn-ghost" onclick="if(confirm('Sair do treino? O que você já marcou será perdido.')){EXEC=null;render()}">${icon('back', 20)}</button>
+    <div style="min-width:0;flex:1">
+      <b>${esc(s.nome)}</b>
+      <span>${feitas} de ${total} séries · ${min} min</span>
+    </div>
+    <span class="tag t-accent">${Math.round(feitas / total * 100)}%</span>
+  </div>
+  <div style="height:4px;background:var(--surface3)"><div style="height:100%;background:var(--accent);width:${Math.round(feitas / total * 100)}%;transition:.3s"></div></div>
+  <div class="wrap">
+    ${s.aquecimento && s.aquecimento.length ? `<div class="alert a-blue">${icon('fire')}
+      <div><b>Aquecimento:</b> ${s.aquecimento.map(esc).join(' · ')}</div></div>` : ''}
+
+    ${EXEC.exercicios.map((e, ei) => {
+    const p = e.prescrito;
+    const u = EXEC.ultimas[e.nome];
+    const done = e.series.every(x => x.feito);
+    return `<div class="ex ${done ? 'done' : ''}">
+        <div class="ex-h">
+          <div class="ex-n">${done ? icon('check', 15) : ei + 1}</div>
+          <div style="flex:1;min-width:0"><b>${esc(e.nome)}</b>
+            <span>${p.series} séries · ${esc(p.repeticoes)} reps · descanso ${p.descanso_seg}s · RIR ${p.rir}</span></div>
+        </div>
+        ${p.obs ? `<div class="obs-ex">${icon('alert', 14)} ${esc(p.obs)}</div>` : ''}
+        ${u ? `<div class="ult">Última vez (${fmtData(u.data)}): <b>${u.series.map(x => x.carga + 'kg × ' + x.reps).join(' · ')}</b></div>` : '<div class="ult">Primeira vez neste exercício — escolha uma carga que te deixe no RIR ' + p.rir + '.</div>'}
+        ${e.series.map((sr, si) => `
+          <div class="serie ${sr.feito ? 'ok' : ''}">
+            <div class="serie-n">${si + 1}ª</div>
+            <input type="number" inputmode="decimal" step="0.5" placeholder="${u ? (u.series[si] ? u.series[si].carga : u.series[0].carga) : 'kg'}"
+              value="${sr.carga}" oninput="setSerie(${ei},${si},'carga',this.value)">
+            <span class="un">kg</span>
+            <input type="number" inputmode="numeric" placeholder="${String(p.repeticoes).split('-')[0]}"
+              value="${sr.reps}" oninput="setSerie(${ei},${si},'reps',this.value)">
+            <span class="un">reps</span>
+            <div class="chk ${sr.feito ? 'on' : ''}" onclick="marcarSerie(${ei},${si})">${icon('check', 20)}</div>
+          </div>`).join('')}
+      </div>`;
+  }).join('')}
+
+    ${s.cardio ? `<div class="alert a-green">${icon('fire')}<div><b>Cardio (${esc(s.cardio.momento)}):</b> ${esc(s.cardio.texto)}</div></div>` : ''}
+
+    <button class="btn btn-primary btn-block" style="margin:18px 0 8px;padding:16px" onclick="finalizar()">
+      ${icon('check', 20)} Finalizar treino</button>
+    <div style="text-align:center;color:var(--muted2);font-size:13px;padding-bottom:20px">
+      ${feitas < total ? 'Você ainda tem ' + (total - feitas) + ' série(s) sem marcar — tudo bem, dá para finalizar assim mesmo.' : 'Todas as séries concluídas. Boa!'}
+    </div>
+  </div>`;
+}
+
+function setSerie(ei, si, campo, v) {
+  EXEC.exercicios[ei].series[si][campo] = v;
+}
+function marcarSerie(ei, si) {
+  const e = EXEC.exercicios[ei], sr = e.series[si];
+  if (!sr.feito) {
+    // preenche o que faltou com a última carga conhecida, para o aluno não travar
+    if (!sr.carga) {
+      const u = EXEC.ultimas[e.nome];
+      sr.carga = si > 0 && e.series[si - 1].carga ? e.series[si - 1].carga : (u ? (u.series[si] || u.series[0]).carga : '');
+    }
+    if (!sr.reps) sr.reps = String(e.prescrito.repeticoes).split('-')[0];
+    sr.feito = true;
+    if (si < e.series.length - 1 || ei < EXEC.exercicios.length - 1) iniciarCrono(e.prescrito.descanso_seg);
+  } else { sr.feito = false; }
+  telaExecucao();
+}
+
+/* ---------- cronômetro de descanso ---------- */
+function iniciarCrono(seg) {
+  pararCrono();
+  CRONO = { resta: seg, total: seg, pausado: false };
+  pintaCrono();
+  CRONO.t = setInterval(() => {
+    if (CRONO.pausado) return;
+    CRONO.resta--;
+    if (CRONO.resta <= 0) { CRONO.resta = 0; clearInterval(CRONO.t); bip(); }
+    pintaCrono();
+  }, 1000);
+}
+function pintaCrono() {
+  const el = $('#timer');
+  if (!CRONO) { el.className = 'timer'; el.innerHTML = ''; return; }
+  const m = Math.floor(CRONO.resta / 60), s = CRONO.resta % 60;
+  const fim = CRONO.resta === 0;
+  el.className = 'timer on';
+  el.innerHTML = `<div class="timer-in ${fim ? 'fim' : ''}">
+    <div class="n">${fim ? 'Vai!' : m + ':' + String(s).padStart(2, '0')}</div>
+    ${fim ? '' : `<button class="btn btn-sm" onclick="CRONO.pausado=!CRONO.pausado;pintaCrono()">${CRONO.pausado ? icon('play', 16) : icon('pause', 16)}</button>
+    <button class="btn btn-sm" onclick="CRONO.resta+=30;pintaCrono()">+30s</button>`}
+    <button class="btn btn-sm btn-ghost" onclick="pararCrono()">${icon('x', 16)}</button>
+  </div>`;
+}
+function pararCrono() { if (CRONO && CRONO.t) clearInterval(CRONO.t); CRONO = null; pintaCrono(); }
+function bip() {
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.18, 0.36].forEach(d => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.connect(g); g.connect(ac.destination);
+      o.frequency.value = 880; g.gain.setValueAtTime(0.001, ac.currentTime + d);
+      g.gain.exponentialRampToValueAtTime(0.25, ac.currentTime + d + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + d + 0.14);
+      o.start(ac.currentTime + d); o.stop(ac.currentTime + d + 0.16);
+    });
+  } catch (e) { }
+  if (navigator.vibrate) navigator.vibrate([160, 80, 160]);
+}
+/* ============================================================
+   FINALIZAR SESSÃO
+   ============================================================ */
+var FIM = { pse: 7, dor: 0 };
+function finalizar() {
+  pararCrono();
+  const s = APP.treino.sessoes[EXEC.sessaoIndex];
+  const min = Math.round((Date.now() - EXEC.inicio) / 60000);
+  const feitas = EXEC.exercicios.reduce((a, e) => a + e.series.filter(x => x.feito).length, 0);
+  const ton = EXEC.exercicios.reduce((a, e) => a + e.series.filter(x => x.feito).reduce((b, x) => b + (+x.carga || 0) * (+x.reps || 0), 0), 0);
+  FIM = { pse: 7, dor: 0 };
+  $('#tabbar').style.display = 'none';
+  $('#app').innerHTML = `
+  <div class="top"><button class="btn btn-sm btn-ghost" onclick="render()">${icon('back', 20)}</button>
+    <div><b>Fechando o treino</b><span>${esc(s.nome)}</span></div></div>
+  <div class="wrap">
+    <div class="card" style="text-align:center;background:linear-gradient(160deg,#1B2E22,#121A22);border-color:rgba(55,217,154,.3)">
+      <div style="font-size:38px;line-height:1">💪</div>
+      <h2 style="margin:10px 0 6px">Treino concluído</h2>
+      <p style="color:var(--muted);margin:0;font-size:14.5px">${min} minutos · ${feitas} séries · ${ton.toLocaleString('pt-BR')} kg movimentados</p>
+    </div>
+
+    <div class="card">
+      <h3>Como foi o esforço? (PSE)</h3>
+      <div class="escala" id="es_pse">
+        ${[4, 5, 6, 7, 8, 9, 10].map(n => `<div class="${n === 7 ? 'on' : ''}" onclick="setEsc('pse',${n})">${n}</div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted2);margin-top:7px">
+        <span>tranquilo</span><span>difícil</span><span>no limite</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Sentiu alguma dor?</h3>
+      <div class="escala dor" id="es_dor">
+        ${[0, 2, 4, 6, 8, 10].map(n => `<div class="${n === 0 ? 'on' : ''}" onclick="setEsc('dor',${n})">${n}</div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted2);margin-top:7px">
+        <span>nenhuma</span><span>moderada</span><span>forte</span></div>
+      <div class="field" style="margin-top:14px">
+        <label>Quer contar algo para o ${esc(APP.personal.nome.split(' ')[0])}?</label>
+        <textarea class="inp" id="fim_obs" placeholder="Ex.: o supino subiu fácil, dá para aumentar. O leg press incomodou o joelho na última série."></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-block" style="padding:16px" onclick="salvarSessao()">
+      ${icon('check', 20)} Salvar e voltar</button>
+    <div style="height:24px"></div>
+  </div>`;
+}
+function setEsc(campo, n) {
+  FIM[campo] = n;
+  document.querySelectorAll('#es_' + campo + ' div').forEach(d => d.classList.toggle('on', +d.textContent === n));
+}
+function salvarSessao() {
+  const obs = ($('#fim_obs') || {}).value || '';
+  const novos = [];
+  EXEC.exercicios.forEach(e => {
+    const series = e.series.filter(x => x.feito && (x.carga || x.reps))
+      .map(x => ({ carga: +x.carga || 0, reps: +x.reps || 0, rir: e.prescrito.rir }));
+    if (!series.length) return;
+    const r = {
+      id: uid('rg'), data: hoje(), exercicio: e.nome, sessaoIndex: EXEC.sessaoIndex,
+      series, pse: FIM.pse, dor: FIM.dor, obs
+    };
+    APP.registros.push(r); novos.push(r);
+  });
+  APP.novos = (APP.novos || []).concat(novos);
+  salvar();
+  EXEC = null;
+  if (FIM.dor >= 5) {
+    telaEnviar('Você marcou dor ' + FIM.dor + '/10. Manda esse resumo agora para o ' + APP.personal.nome.split(' ')[0] + ' — ele precisa saber antes do próximo treino.');
+  } else if (novos.length) {
+    telaEnviar();
+  } else { go('hoje'); toast('Nada foi registrado — nenhuma série marcada.', 'err'); }
+}
+
+/* ============================================================
+   ENVIAR PARA O PERSONAL
+   ============================================================ */
+function telaEnviar(aviso) {
+  const novos = APP.novos || [];
+  const pacote = b64enc({
+    v: 1, alunoId: APP.aluno.id, codigo: APP.aluno.codigo, nome: APP.aluno.nome,
+    registros: novos.map(r => ({ data: r.data, exercicio: r.exercicio, sessaoIndex: r.sessaoIndex, series: r.series, pse: r.pse, dor: r.dor, obs: r.obs }))
+  });
+  window.__pacote = pacote;
+  const resumo = 'Treino de hoje concluído ✅\n\n' +
+    novos.slice(0, 12).map(r => '• ' + r.exercicio + ': ' + r.series.map(s => s.carga + 'kg × ' + s.reps).join(' · ')).join('\n') +
+    '\n\nEsforço: ' + (novos[0] ? novos[0].pse : '—') + '/10' +
+    (novos[0] && novos[0].dor ? ' · Dor: ' + novos[0].dor + '/10' : '') +
+    (novos[0] && novos[0].obs ? '\nObs: ' + novos[0].obs : '');
+  const link = 'https://wa.me/55' + String(APP.personal.phone || '').replace(/\D/g, '') + '?text=' + encodeURIComponent(resumo);
+  $('#tabbar').style.display = 'none';
+  $('#app').innerHTML = `
+  <div class="top"><button class="btn btn-sm btn-ghost" onclick="go('hoje')">${icon('back', 20)}</button>
+    <div><b>Enviar para o personal</b><span>${novos.length} exercício(s) registrado(s)</span></div></div>
+  <div class="wrap">
+    ${aviso ? `<div class="alert a-red">${icon('alert')}<div>${esc(aviso)}</div></div>` : ''}
+    <div class="card">
+      <h3>${icon('whatsapp', 18)} Resumo pelo WhatsApp</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 14px;line-height:1.55">
+        Manda o resumo em texto para o ${esc(APP.personal.nome.split(' ')[0])} ver na hora.</p>
+      <button class="btn btn-green btn-block" onclick="window.open('${link}','_blank')">${icon('send', 18)} Enviar resumo</button>
+    </div>
+    <div class="card">
+      <h3>${icon('copy', 18)} Código de sincronização</h3>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 14px;line-height:1.55">
+        Este código leva suas cargas exatas para o sistema dele, alimentando os gráficos de evolução.
+        Copie e cole no WhatsApp junto com o resumo.</p>
+      <textarea class="inp mono" style="font-size:10.5px;min-height:96px" readonly onclick="this.select()">${esc(pacote)}</textarea>
+      <button class="btn btn-block" style="margin-top:12px" onclick="copiarPacote()">${icon('copy', 18)} Copiar código</button>
+    </div>
+    <button class="btn btn-ghost btn-block" onclick="APP.novos=[];salvar();go('hoje')">Já enviei, limpar pendências</button>
+    <div style="height:24px"></div>
+  </div>`;
+}
+function copiarPacote() {
+  const t = window.__pacote || '';
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(() => toast('Código copiado.', 'ok'), fb);
+  else fb();
+  function fb() {
+    const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Código copiado.', 'ok'); } catch (e) { toast('Selecione e copie manualmente.', 'err'); }
+    ta.remove();
+  }
+}
+
+/* ============================================================
+   MINHA FICHA
+   ============================================================ */
+function telaFicha() {
+  const t = APP.treino;
+  return `
+  <div class="card">
+    <div class="lbl">${esc(t.divisao)} · ${t.semanas} semanas</div>
+    <h2 style="margin:8px 0 6px">${esc(t.titulo)}</h2>
+    <p style="color:var(--muted2);font-size:13.5px;margin:0">Prescrita por ${esc(APP.personal.nome)} · ${esc(t.metodologia)}</p>
+  </div>
+
+  ${(t.alertas || []).length ? `<div class="alert a-red">${icon('shield')}
+    <div><b>Cuidados no seu caso</b>${t.alertas.map(a => '<br><b>' + esc(a.titulo) + ':</b> ' + esc(a.texto)).join('')}</div></div>` : ''}
+
+  ${t.sessoes.map((s, i) => `
+    <div class="card">
+      <h3 style="display:flex;align-items:center;gap:8px">${icon('dumbbell', 18)} ${esc(s.nome)}
+        <span class="tag t-gray" style="margin-left:auto">~${s.duracaoEstimada || 55} min</span></h3>
+      ${s.aquecimento && s.aquecimento.length ? `<div style="font-size:13px;color:var(--blue);margin-bottom:12px;line-height:1.5"><b>Aquecimento:</b> ${s.aquecimento.map(esc).join(' · ')}</div>` : ''}
+      ${s.exercicios.map((e, ei) => `
+        <div style="padding:11px 0;border-top:1px solid var(--border)">
+          <div style="display:flex;gap:10px;align-items:flex-start">
+            <div class="ex-n">${ei + 1}</div>
+            <div style="flex:1;min-width:0">
+              <b style="font-size:14.5px">${esc(e.nome)}</b>
+              <div style="font-size:12.5px;color:var(--muted2);margin-top:2px">
+                ${e.series} × ${esc(e.repeticoes)} · descanso ${e.descanso_seg}s · RIR ${e.rir}</div>
+              ${e.obs ? `<div style="font-size:12.5px;color:var(--amber);margin-top:4px">${esc(e.obs)}</div>` : ''}
+            </div>
+          </div>
+        </div>`).join('')}
+      ${s.cardio ? `<div style="font-size:13px;color:var(--green);margin-top:12px;line-height:1.5"><b>Cardio:</b> ${esc(s.cardio.texto)}</div>` : ''}
+      <button class="btn btn-block" style="margin-top:14px" onclick="iniciar(${i})">${icon('play', 18)} Fazer este treino</button>
+    </div>`).join('')}
+
+  <div class="card">
+    <h3>Como progredir</h3>
+    <p style="color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 14px">${esc(t.progressao)}</p>
+    <div class="stat"><span>Cadência</span><b>${esc(t.cadencia || '—')}</b></div>
+    <div class="stat"><span>RIR alvo</span><b>${t.rir} (parar com ${t.rir} repetições sobrando)</b></div>
+    <div class="stat"><span>Ciclo</span><b>${t.semanas} semanas</b></div>
+    <div class="stat"><span>Recebida em</span><b>${fmtData(APP.recebidoEm)}</b></div>
+  </div>
+
+  <div class="alert a-blue">${icon('alert')}
+    <div>Dor diferente de cansaço muscular? Para o exercício e fala com o ${esc(APP.personal.nome.split(' ')[0])}. Não force.</div></div>`;
+}
+
+/* ============================================================
+   EVOLUÇÃO
+   ============================================================ */
+function telaEvolucao() {
+  const exs = Array.from(new Set(regsDe().map(r => r.exercicio)));
+  const total = regsDe().length;
+  const ton = regsDe().reduce((s, r) => s + tonelagem(r), 0);
+  const dias = new Set(regsDe().map(r => r.data)).size;
+
+  if (!exs.length) return `<div class="card"><div class="empty">${icon('chart', 40)}<b>Sem histórico ainda</b>Termine seu primeiro treino para ver a evolução aqui.</div></div>`;
+
+  const serie = ex => {
+    const rs = regsDe(ex);
+    const max = Math.max.apply(null, rs.map(r => Math.max.apply(null, r.series.map(s => +s.carga || 0))));
+    return `<div class="card">
+      <h3>${esc(ex)}</h3>
+      <div style="display:flex;align-items:flex-end;gap:6px;height:110px;margin-bottom:10px">
+        ${rs.slice(-8).map(r => {
+      const c = Math.max.apply(null, r.series.map(s => +s.carga || 0));
+      const h = Math.max(4, Math.round(c / max * 76));
+      return `<div style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px">
+            <span style="font-size:10.5px;font-weight:700;color:var(--muted2)">${c}</span>
+            <div style="width:100%;max-width:34px;height:${h}px;background:var(--accent);border-radius:5px 5px 2px 2px"></div>
+            <span style="font-size:9.5px;color:var(--muted2)">${fmtCurto(r.data)}</span></div>`;
+    }).join('')}
+      </div>
+      <div class="stat"><span>Recorde</span><b>${recorde(ex).carga} kg</b></div>
+      <div class="stat"><span>Sessões</span><b>${rs.length}</b></div>
+      <div class="stat"><span>Evolução</span><b style="color:var(--green)">${(() => {
+      const pri = Math.max.apply(null, rs[0].series.map(s => +s.carga || 0));
+      const ult = Math.max.apply(null, rs[rs.length - 1].series.map(s => +s.carga || 0));
+      return pri ? (ult >= pri ? '+' : '') + Math.round((ult - pri) / pri * 100) + '%' : '—';
+    })()}</b></div>
+    </div>`;
+  };
+
+  return `
+  <div class="card" style="background:linear-gradient(160deg,#18232E,#121A22)">
+    <div class="lbl">Seu acumulado</div>
+    <div style="display:flex;gap:18px;margin-top:12px">
+      <div><div style="font-size:26px;font-weight:800;letter-spacing:-1px">${dias}</div><div style="font-size:12px;color:var(--muted2)">treinos</div></div>
+      <div><div style="font-size:26px;font-weight:800;letter-spacing:-1px">${(ton / 1000).toFixed(1)}t</div><div style="font-size:12px;color:var(--muted2)">levantados</div></div>
+      <div><div style="font-size:26px;font-weight:800;letter-spacing:-1px">${exs.length}</div><div style="font-size:12px;color:var(--muted2)">exercícios</div></div>
+    </div>
+  </div>
+  ${exs.map(serie).join('')}
+  <div style="height:12px"></div>`;
+}
+
+/* ---------- start ---------- */
+render();
+</script>
+</body>
+</html>

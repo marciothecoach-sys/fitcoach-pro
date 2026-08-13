@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0E13">
+<title>FitCoach Pro — gestão inteligente para personal trainers</title>
+<meta name="description" content="Prescrição de treino com IA que respeita as lesões do aluno, agenda, financeiro e app do aluno. Feito para personal trainers no Brasil.">
+<style>
+:root{
+  --bg:#0A0E13;--surface:#121A22;--surface2:#18232E;--surface3:#1F2C39;
+  --border:#25343F;--border2:#31424F;--text:#E8F0F7;--muted:#93A7B8;--muted2:#6B8098;
+  --accent:#C6FF3D;--accent-ink:#0A0E13;--green:#37D99A;--red:#FF5F6D;--amber:#FFB13D;--blue:#4FA8FF;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.6;font-size:16px}
+.wrap{max-width:1060px;margin:0 auto;padding:0 22px}
+a{color:inherit;text-decoration:none}
+
+header{padding:22px 0;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,14,19,.92);backdrop-filter:blur(10px);z-index:20}
+header .wrap{display:flex;align-items:center;gap:12px}
+.logo{width:38px;height:38px;border-radius:11px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:16px}
+.marca{font-weight:700;letter-spacing:-.3px;line-height:1.1}
+.marca small{display:block;font-size:11px;color:var(--muted2);font-weight:500;letter-spacing:.5px}
+header nav{margin-left:auto;display:flex;gap:8px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-weight:600;font-size:15px;cursor:pointer;transition:.15s}
+.btn:hover{background:var(--surface3);transform:translateY(-1px)}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:700}
+.btn-primary:hover{background:#D4FF63}
+.btn-sm{padding:8px 14px;font-size:14px}
+
+.hero{padding:74px 0 60px;text-align:center}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:7px 15px;border-radius:22px;background:rgba(198,255,61,.1);border:1px solid rgba(198,255,61,.3);color:var(--accent);font-size:13px;font-weight:700;margin-bottom:22px}
+h1{font-size:clamp(32px,5.5vw,54px);line-height:1.08;letter-spacing:-1.6px;margin:0 0 18px;font-weight:800}
+h1 em{font-style:normal;color:var(--accent)}
+.sub{font-size:clamp(16px,2.2vw,19px);color:var(--muted);max-width:640px;margin:0 auto 32px}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+
+.apps{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px 0 60px}
+.app-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:26px;transition:.18s;display:flex;flex-direction:column}
+.app-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.app-card .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:16px}
+.app-card h3{margin:0 0 8px;font-size:20px;letter-spacing:-.4px}
+.app-card p{color:var(--muted);font-size:15px;margin:0 0 18px;flex:1}
+.app-card ul{margin:0 0 20px;padding-left:18px;color:var(--muted);font-size:14.5px}
+.app-card li{margin-bottom:5px}
+
+section{padding:56px 0;border-top:1px solid var(--border)}
+h2{font-size:clamp(24px,3.4vw,34px);letter-spacing:-1px;margin:0 0 12px;font-weight:800}
+.lead{color:var(--muted);font-size:17px;max-width:680px;margin:0 0 34px}
+
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.feat{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px}
+.feat b{display:block;font-size:16px;margin-bottom:7px;letter-spacing:-.2px}
+.feat span{color:var(--muted);font-size:14.5px}
+
+.destaque{background:linear-gradient(150deg,#18232E,#121A22);border:1px solid rgba(198,255,61,.22);border-radius:20px;padding:34px}
+.destaque h3{margin:0 0 12px;font-size:22px;letter-spacing:-.5px}
+.destaque p{color:var(--muted);font-size:16px;margin:0 0 20px}
+.fluxo{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.passo{background:var(--surface2);border:1px solid var(--border);border-radius:13px;padding:16px}
+.passo .n{width:26px;height:26px;border-radius:8px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:800;font-size:13px;margin-bottom:10px}
+.passo b{display:block;font-size:14.5px;margin-bottom:4px}
+.passo span{color:var(--muted2);font-size:13px}
+
+.nums{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;text-align:center}
+.num b{display:block;font-size:34px;font-weight:800;letter-spacing:-1.5px;color:var(--accent);line-height:1}
+.num span{color:var(--muted2);font-size:13.5px;display:block;margin-top:6px}
+
+.aviso{background:rgba(79,168,255,.08);border:1px solid rgba(79,168,255,.28);border-radius:14px;padding:18px 20px;color:#B9DAFF;font-size:14.5px}
+.aviso b{color:#fff}
+
+footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted2);font-size:13.5px;text-align:center}
+
+@media(max-width:860px){
+  .apps,.grid3,.fluxo,.nums{grid-template-columns:1fr}
+  .nums{grid-template-columns:1fr 1fr}
+  .hero{padding:48px 0 40px}
+  header nav .btn{padding:8px 12px;font-size:13.5px}
+}
+</style>
+</head>
+<body>
+
+<header><div class="wrap">
+  <div class="logo">FC</div>
+  <div class="marca">FitCoach<small>PRO · GESTÃO 360°</small></div>
+  <nav>
+    <a class="btn btn-sm" href="aluno.html">App do aluno</a>
+    <a class="btn btn-sm btn-primary" href="personal.html">Entrar como personal</a>
+  </nav>
+</div></header>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="pill">✦ Demonstração ao vivo · dados de exemplo carregados</div>
+    <h1>A ficha de treino que <em>conhece a lesão</em> do seu aluno.</h1>
+    <p class="sub">Prescrição com inteligência artificial dentro da <b>sua</b> metodologia, agenda, controle de mensalidades e um app onde o aluno registra cada carga. Feito para personal trainer brasileiro.</p>
+    <div class="cta">
+      <a class="btn btn-primary" href="personal.html">Ver o sistema do personal →</a>
+      <a class="btn" href="aluno.html">Ver o app do aluno</a>
+    </div>
+  </div>
+
+  <div class="apps">
+    <div class="app-card">
+      <div class="ic" style="background:rgba(198,255,61,.14);color:var(--accent)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6.5 6.5v11M3.5 9v6M17.5 6.5v11M20.5 9v6M6.5 12h11"/></svg></div>
+      <h3>FitCoach Pro — o personal</h3>
+      <p>Onde o profissional passa o dia. Nove alunos de exemplo já cadastrados, com histórico de treino, avaliações e financeiro de seis meses.</p>
+      <ul>
+        <li>Gerador de fichas com filtro de contraindicação</li>
+        <li>Anamnese com PAR-Q+ e avaliação por dobras</li>
+        <li>Registro de carga com detecção de platô</li>
+        <li>Agenda semanal e controle de mensalidades</li>
+      </ul>
+      <a class="btn btn-primary" href="personal.html">Abrir o sistema</a>
+    </div>
+
+    <div class="app-card">
+      <div class="ic" style="background:rgba(55,217,154,.14);color:var(--green)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18.5h2"/></svg></div>
+      <h3>FitCoach Aluno — o cliente</h3>
+      <p>O que o aluno abre na academia. Toque em <b>Ver uma demonstração</b> na tela de entrada para conhecer sem precisar de código.</p>
+      <ul>
+        <li>Ficha do dia com a carga da última vez à vista</li>
+        <li>Cronômetro de descanso com aviso sonoro</li>
+        <li>Registro de carga série por série</li>
+        <li>Gráficos de evolução e recordes pessoais</li>
+      </ul>
+      <a class="btn" href="aluno.html">Abrir o app do aluno</a>
+    </div>
+  </div>
+
+  <section>
+    <h2>O que nenhum app de ficha faz</h2>
+    <p class="lead">Existe muito gerador de treino por IA. O problema é que quase nenhum sabe que aquele aluno tem hérnia de disco — e a IA, sozinha, sugere levantamento terra.</p>
+    <div class="destaque">
+      <h3>A IA propõe. O sistema veta.</h3>
+      <p>Cada um dos 178 exercícios do catálogo carrega marcadores de risco: carga axial, flexão de tronco, impacto, elevação acima da cabeça, manobra de Valsalva. Quando você marca uma restrição na anamnese, o filtro roda <b>depois</b> da resposta da IA e remove o que for contraindicado — e te mostra quantos removeu.</p>
+      <div class="fluxo">
+        <div class="passo"><div class="n">1</div><b>Anamnese</b><span>14 tipos de restrição, PAR-Q+ e medicamentos</span></div>
+        <div class="passo"><div class="n">2</div><b>Sua metodologia</b><span>séries, reps, descanso, RIR e progressão definidos por você</span></div>
+        <div class="passo"><div class="n">3</div><b>GPT-4o</b><span>escolhe os exercícios dentro das suas regras</span></div>
+        <div class="passo"><div class="n">4</div><b>Filtro de segurança</b><span>veta o que agride a lesão, sem exceção</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>O ciclo completo do acompanhamento</h2>
+    <p class="lead">A ficha sai do seu sistema, vira treino executado na academia e volta como dado de progressão. Sem planilha no meio.</p>
+    <div class="grid3">
+      <div class="feat"><b>Ficha no WhatsApp</b><span>Formatada, com as orientações de segurança da lesão do aluno e a regra de progressão de carga. Um toque para enviar.</span></div>
+      <div class="feat"><b>O aluno registra a carga</b><span>Cada série, com a carga da última vez à vista. No fim, esforço percebido e dor numa escala tocável.</span></div>
+      <div class="feat"><b>Você vê o platô antes dele</b><span>Três sessões sem evoluir e o sistema avisa — cruzando com o sono e o estresse que o aluno declarou.</span></div>
+      <div class="feat"><b>Financeiro sem planilha</b><span>Mensalidades por competência, régua de cobrança no WhatsApp, MRR, ticket médio e inadimplência.</span></div>
+      <div class="feat"><b>Agenda que fecha o mês</b><span>Grade semanal, recorrência de até 12 semanas, presença em um toque e lembretes do dia seguinte.</span></div>
+      <div class="feat"><b>Avaliação de verdade</b><span>Pollock 3 e 7 dobras, Faulkner, 12 perímetros, massa magra, RCQ e gasto energético calculados na hora.</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Números do sistema</h2>
+    <div class="nums">
+      <div class="num"><b>178</b><span>exercícios catalogados</span></div>
+      <div class="num"><b>21</b><span>marcadores de risco</span></div>
+      <div class="num"><b>9</b><span>metodologias prontas</span></div>
+      <div class="num"><b>6</b><span>divisões de treino</span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="aviso">
+      <b>Sobre esta demonstração.</b> Os dois aplicativos funcionam de verdade e guardam os dados no próprio navegador —
+      nada é enviado para servidor nenhum. É o suficiente para uma demonstração completa, inclusive sem internet.
+      A versão com contas, sincronização entre aparelhos e cobrança automática roda sobre Firebase, e o código do backend
+      já está pronto para deploy.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    FitCoach Pro · demonstração · desenvolvido para personal trainers no Brasil<br>
+    <span style="opacity:.7">Prescrição de exercício é ato profissional. O sistema apoia a decisão do personal — não a substitui.</span>
+  </div>
+</footer>
+
+</body>
+</html>
