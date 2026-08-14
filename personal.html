@@ -303,7 +303,7 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xm
     </div>
     <nav id="nav"></nav>
     <div class="sidebar-foot">
-      <div class="plan-chip" onclick="go('config')">
+      <div class="plan-chip" onclick="go('perfil')">
         <div class="av" id="sbAv">MC</div>
         <div style="min-width:0">
           <b id="sbNome">Personal</b>
@@ -1597,8 +1597,21 @@ function seed() {
   });
 
   return {
-    personal: { uid: 'usr_marcio', nome: 'Márcio Coach', email: 'marciothecoach@gmail.com', phone: '11999990000', cref: '123456-G/SP', role: 'personal', plano: 'pro', criadoEm: addDays(hj, -700) },
-    config: { openaiKey: '', templatePadrao: 'tpl_hiper', assinaturaWa: 'Márcio Coach · CREF 123456-G/SP', localPadrao: 'Studio Alpha', chavePix: 'marciothecoach@gmail.com' },
+    personal: {
+      uid: 'usr_marcio', nome: 'Márcio Coach', email: 'marciothecoach@gmail.com', phone: '11999990000',
+      cref: '123456-G/SP', especialidade: 'Hipertrofia e reabilitação pós-lesão', instagram: '@marciothecoach',
+      bio: 'Personal trainer há 12 anos, especialista em treinamento de força para adultos com restrições articulares.',
+      logo: '', role: 'personal', plano: 'pro', criadoEm: addDays(hj, -700)
+    },
+    config: {
+      openaiKey: '', templatePadrao: 'tpl_hiper',
+      assinaturaWa: 'Márcio Coach · CREF 123456-G/SP', localPadrao: 'Studio Alpha',
+      chavePix: 'marciothecoach@gmail.com', tipoPix: 'E-mail',
+      valorPadrao: 400, diaVencimentoPadrao: 5, duracaoPadrao: 60,
+      diasAtendimento: ['1', '2', '3', '4', '5'], horarioInicio: '06:00', horarioFim: '21:00',
+      politica: 'Cancelamento com menos de 4 horas de antecedência conta como sessão realizada. Reposição no mesmo mês, conforme disponibilidade de agenda.',
+      boasVindas: 'Seja bem-vindo(a)! Antes do primeiro treino vou te mandar a ficha de anamnese. Qualquer dúvida, é só chamar aqui.'
+    },
     alunos, aulas, pagamentos, registros, treinos: [], templates: JSON.parse(JSON.stringify(TEMPLATES_PADRAO))
   };
 }
@@ -1606,6 +1619,17 @@ function seed() {
 if (!DB || !DB.alunos || !DB.registros) { DB = seed(); Store.set('fitcoach_db', DB); }
 if (!DB.templates || !DB.templates.length) DB.templates = JSON.parse(JSON.stringify(TEMPLATES_PADRAO));
 if (!DB.registros) DB.registros = [];
+/* Migração leve: bases salvas antes da aba "Meu perfil" não têm os campos novos.
+   Sem isso, quem já usava o app abriria a tela de perfil com campos quebrados. */
+(function migrarPerfil() {
+  const cfg = {
+    chavePix: '', tipoPix: 'E-mail', valorPadrao: 400, diaVencimentoPadrao: 5, duracaoPadrao: 60,
+    diasAtendimento: ['1', '2', '3', '4', '5'], horarioInicio: '06:00', horarioFim: '21:00',
+    politica: '', boasVindas: ''
+  };
+  Object.keys(cfg).forEach(k => { if (DB.config[k] === undefined) DB.config[k] = cfg[k]; });
+  ['especialidade', 'instagram', 'bio', 'logo'].forEach(k => { if (DB.personal[k] === undefined) DB.personal[k] = ''; });
+})();
 function save() { Store.set('fitcoach_db', DB); }
 
 /* ---------- acessores ---------- */
@@ -1645,8 +1669,12 @@ const ROTAS = [
   { id: 'agenda', nome: 'Agenda', ic: 'calendar' },
   { id: 'financeiro', nome: 'Financeiro', ic: 'wallet' },
   { id: 'biblioteca', nome: 'Exercícios', ic: 'book' },
-  { id: 'config', nome: 'Metodologia', ic: 'gear' }
+  { id: 'metodologia', nome: 'Metodologia', ic: 'star' },
+  { id: 'perfil', nome: 'Meu perfil', ic: 'gear' }
 ];
+/* No celular a barra inferior mostra só o essencial; Exercícios e Metodologia
+   ficam acessíveis pelos atalhos dentro de Meu perfil. */
+const ROTAS_MOBILE = ['dash', 'alunos', 'treinos', 'agenda', 'financeiro', 'perfil'];
 
 function go(r, p, sub) { ROTA = r; PARAM = p || null; SUBTAB = sub || null; render(); $('.content').scrollTop = 0; }
 
@@ -1656,10 +1684,12 @@ function renderNav() {
     '<button class="nav-item' + (ROTA === r.id ? ' active' : '') + '" onclick="go(\'' + r.id + '\')">' +
     '<span class="ic">' + icon(r.ic) + '</span>' + r.nome +
     (r.id === 'financeiro' && inad ? '<span class="nav-badge">' + inad + '</span>' : '') + '</button>').join('');
-  $('#tabbar').innerHTML = ROTAS.filter(r => r.id !== 'biblioteca').map(r =>
+  $('#tabbar').innerHTML = ROTAS.filter(r => ROTAS_MOBILE.indexOf(r.id) >= 0).map(r =>
     '<button class="' + (ROTA === r.id ? 'active' : '') + '" onclick="go(\'' + r.id + '\')">' + icon(r.ic, 21) + r.nome + '</button>').join('');
   $('#sbNome').textContent = DB.personal.nome;
-  $('#sbAv').textContent = inicials(DB.personal.nome);
+  $('#sbAv').innerHTML = DB.personal.logo
+    ? '<img src="' + DB.personal.logo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%">'
+    : esc(inicials(DB.personal.nome));
   $('#sbPlano').textContent = 'Plano ' + cap(DB.personal.plano) + ' · ' + DB.alunos.filter(a => a.status === 'ativo').length + ' alunos';
 }
 
@@ -2601,14 +2631,14 @@ VIEWS.biblioteca = function () {
     acoes: '', html
   };
 };
-/* ---------------- METODOLOGIA / CONFIGURAÇÕES ---------------- */
-VIEWS.config = function () {
+/* ---------------- METODOLOGIA (só as regras de treino) ---------------- */
+VIEWS.metodologia = function () {
   const html = `
   <div class="alert alert-blue" style="margin-bottom:16px">${icon('spark', 18)}
     <div><b>A metodologia é sua, a IA só executa.</b> O gerador nunca inventa séries, repetições, descanso ou progressão:
     ele preenche os exercícios dentro das regras que você definir aqui — e o filtro de restrições roda depois, por cima da resposta da IA.</div></div>
 
-  <div class="grid g2" style="margin-bottom:16px">
+  <div class="grid g2">
     ${DB.templates.map(t => `
       <div class="card">
         <div class="card-head">${icon('doc', 18)}<h3>${esc(t.nome)}</h3>
@@ -2634,6 +2664,146 @@ VIEWS.config = function () {
     <div class="card" style="display:flex;align-items:center;justify-content:center;border-style:dashed;min-height:170px">
       <button class="btn btn-primary" onclick="modalTemplate()">${icon('plus', 16)} Nova metodologia</button>
     </div>
+  </div>`;
+  return {
+    titulo: 'Metodologia', sub: DB.templates.length + ' metodologias · as regras que a IA é obrigada a seguir',
+    acoes: `<button class="btn btn-sm btn-primary" onclick="modalTemplate()">${icon('plus', 15)} Nova metodologia</button>`,
+    html
+  };
+};
+
+/* ---------------- MEU PERFIL (dados do personal) ---------------- */
+function setP(campo, v) { DB.personal[campo] = v; save(); renderNav(); }
+function setC(campo, v) { DB.config[campo] = v; save(); }
+
+VIEWS.perfil = function () {
+  const p = DB.personal, c = DB.config;
+  const ativos = DB.alunos.filter(a => a.status === 'ativo');
+  const mrr = ativos.reduce((s, a) => s + a.valor, 0);
+  const dias = [['0', 'Dom'], ['1', 'Seg'], ['2', 'Ter'], ['3', 'Qua'], ['4', 'Qui'], ['5', 'Sex'], ['6', 'Sáb']];
+  const assinatura = c.assinaturaWa || (p.nome + (p.cref ? ' · CREF ' + p.cref : ''));
+
+  const html = `
+  <div class="grid g23" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-head">${icon('users', 18)}<h3>Identidade profissional</h3>
+        <span class="tag t-accent">aparece na ficha e no WhatsApp</span></div>
+      <div class="row" style="align-items:flex-start;margin-bottom:14px">
+        <div style="flex:0 0 auto;text-align:center">
+          ${p.logo
+      ? `<img src="${p.logo}" style="width:88px;height:88px;object-fit:cover;border-radius:16px;border:1px solid var(--border2)">`
+      : `<div style="width:88px;height:88px;border-radius:16px;background:linear-gradient(135deg,#C6FF3D,#37D99A);color:#0A0E13;display:grid;place-items:center;font-weight:800;font-size:30px">${inicials(p.nome)}</div>`}
+          <label class="btn btn-sm" style="margin-top:9px;cursor:pointer">
+            ${icon('plus', 14)} Foto
+            <input type="file" accept="image/*" style="display:none" onchange="lerLogo(this)">
+          </label>
+          ${p.logo ? `<button class="btn btn-sm btn-ghost" style="margin-top:4px" onclick="setP('logo','');render()">remover</button>` : ''}
+        </div>
+        <div style="flex:1;min-width:220px">
+          <div class="field"><label>Nome profissional</label>
+            <input class="inp" value="${esc(p.nome)}" onchange="setP('nome',this.value);render()"></div>
+          <div class="row">
+            <div class="field" style="margin:0"><label>CREF</label>
+              <input class="inp" value="${esc(p.cref)}" placeholder="000000-G/UF" onchange="setP('cref',this.value)"></div>
+            <div class="field" style="margin:0"><label>Instagram</label>
+              <input class="inp" value="${esc(p.instagram || '')}" placeholder="@seuperfil" onchange="setP('instagram',this.value)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="field"><label>Especialidade</label>
+        <input class="inp" value="${esc(p.especialidade || '')}" placeholder="Ex.: hipertrofia e reabilitação pós-lesão" onchange="setP('especialidade',this.value)"></div>
+      <div class="field"><label>Mini biografia</label>
+        <textarea class="inp" placeholder="Usada em propostas e no material que você envia para o aluno." onchange="setP('bio',this.value)">${esc(p.bio || '')}</textarea></div>
+      <div class="row">
+        <div class="field" style="margin:0"><label>E-mail</label>
+          <input class="inp" value="${esc(p.email)}" onchange="setP('email',this.value)"></div>
+        <div class="field" style="margin:0"><label>WhatsApp (com DDD)</label>
+          <input class="inp" value="${esc(p.phone)}" placeholder="11999990000" onchange="setP('phone',this.value)"></div>
+      </div>
+      <div class="alert alert-amber" style="margin-top:14px">${icon('shield', 16)}
+        <div>O CREF sai impresso em toda ficha. Prescrição de exercício é ato privativo do profissional de Educação Física — mantenha o registro correto e ativo.</div></div>
+    </div>
+
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-head">${icon('star', 18)}<h3>Sua operação</h3></div>
+        <div class="stat-line"><span>Alunos ativos</span><b>${ativos.length}</b></div>
+        <div class="stat-line"><span>Receita recorrente</span><b>${brl(mrr)}</b></div>
+        <div class="stat-line"><span>Ticket médio</span><b>${brl(ativos.length ? mrr / ativos.length : 0)}</b></div>
+        <div class="stat-line"><span>Sessões realizadas</span><b>${DB.aulas.filter(a => a.status === 'realizada').length}</b></div>
+        <div class="stat-line"><span>Fichas emitidas</span><b>${DB.treinos.length}</b></div>
+        <div class="stat-line"><span>Cliente desde</span><b>${fmtData(p.criadoEm)}</b></div>
+      </div>
+      <div class="card">
+        <div class="card-head">${icon('send', 18)}<h3>Atalhos</h3></div>
+        <div class="chips" style="flex-direction:column;align-items:stretch;gap:9px">
+          <button class="btn" style="justify-content:flex-start" onclick="go('metodologia')">${icon('doc', 16)} Minhas metodologias (${DB.templates.length})</button>
+          <button class="btn" style="justify-content:flex-start" onclick="go('biblioteca')">${icon('book', 16)} Biblioteca de exercícios (${EXERCICIOS.length})</button>
+          <button class="btn" style="justify-content:flex-start" onclick="modalImportar()">${icon('chart', 16)} Importar treinos do aluno</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid g3" style="margin-bottom:16px">
+    <div class="card">
+      <div class="card-head">${icon('calendar', 18)}<h3>Atendimento</h3></div>
+      <div class="field"><label>Local padrão das sessões</label>
+        <input class="inp" value="${esc(c.localPadrao)}" onchange="setC('localPadrao',this.value)"></div>
+      <div class="row">
+        <div class="field" style="margin:0"><label>Abre às</label>
+          <input class="inp" type="time" value="${esc(c.horarioInicio || '06:00')}" onchange="setC('horarioInicio',this.value)"></div>
+        <div class="field" style="margin:0"><label>Fecha às</label>
+          <input class="inp" type="time" value="${esc(c.horarioFim || '21:00')}" onchange="setC('horarioFim',this.value)"></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>Duração padrão da sessão</label>
+        <select class="inp" onchange="setC('duracaoPadrao',+this.value)">
+          ${[30, 45, 60, 75, 90].map(d => `<option value="${d}" ${(c.duracaoPadrao || 60) === d ? 'selected' : ''}>${d} minutos</option>`).join('')}</select></div>
+      <div class="field"><label>Dias de atendimento</label>
+        <div class="chips" id="p_dias">
+          ${dias.map(d => `<div class="chip ${(c.diasAtendimento || []).indexOf(d[0]) >= 0 ? 'on' : ''}" onclick="toggleDia('${d[0]}')">${d[1]}</div>`).join('')}
+        </div>
+        <div class="hint">Usado como referência ao montar a agenda semanal.</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">${icon('money', 18)}<h3>Financeiro</h3></div>
+      <div class="row">
+        <div class="field" style="margin:0;flex:0 0 120px"><label>Tipo da chave</label>
+          <select class="inp" onchange="setC('tipoPix',this.value)">
+            ${['E-mail', 'Telefone', 'CPF/CNPJ', 'Aleatória'].map(t => `<option ${c.tipoPix === t ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+        <div class="field" style="margin:0"><label>Chave PIX</label>
+          <input class="inp" value="${esc(c.chavePix || '')}" placeholder="Sua chave para receber" onchange="setC('chavePix',this.value)"></div>
+      </div>
+      <div class="hint" style="margin-bottom:14px">Vai automaticamente em toda mensagem de cobrança enviada pelo WhatsApp.</div>
+      <div class="row">
+        <div class="field" style="margin:0"><label>Mensalidade padrão</label>
+          <input class="inp" type="number" value="${c.valorPadrao || 400}" onchange="setC('valorPadrao',+this.value)"></div>
+        <div class="field" style="margin:0"><label>Vencimento padrão</label>
+          <input class="inp" type="number" min="1" max="28" value="${c.diaVencimentoPadrao || 5}" onchange="setC('diaVencimentoPadrao',+this.value)"></div>
+      </div>
+      <div class="hint">Valores sugeridos ao cadastrar um aluno novo — dá para mudar caso a caso.</div>
+      <div class="field" style="margin-top:14px"><label>Política de cancelamento</label>
+        <textarea class="inp" style="min-height:88px" onchange="setC('politica',this.value)">${esc(c.politica || '')}</textarea></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">${icon('whatsapp', 18)}<h3>Comunicação</h3></div>
+      <div class="field"><label>Assinatura nas mensagens</label>
+        <input class="inp" value="${esc(c.assinaturaWa)}" onchange="setC('assinaturaWa',this.value);render()"></div>
+      <div class="field"><label>Mensagem de boas-vindas</label>
+        <textarea class="inp" style="min-height:88px" onchange="setC('boasVindas',this.value)">${esc(c.boasVindas || '')}</textarea>
+        <div class="hint">Enviada ao cadastrar um aluno novo.</div></div>
+      <div class="divider"></div>
+      <b style="font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2)">Como o aluno recebe</b>
+      <div class="wa-preview" style="margin-top:10px;max-height:150px">*FICHA DE TREINO — NOME DO ALUNO*
+Periodização Hipertrofia — ABCD
+_Ciclo de 8 semanas · emitida em ${fmtData(hoje())}_
+
+...
+
+💪 ${esc(assinatura)}</div>
+    </div>
   </div>
 
   <div class="grid g2">
@@ -2641,38 +2811,80 @@ VIEWS.config = function () {
       <div class="card-head">${icon('spark', 18)}<h3>Inteligência artificial</h3></div>
       <div class="field">
         <label>Chave da API OpenAI</label>
-        <input class="inp mono" type="password" placeholder="sk-..." value="${esc(DB.config.openaiKey)}"
-          onchange="DB.config.openaiKey=this.value;save();toast(this.value?'Chave salva. O gerador passa a usar GPT-4o.':'Chave removida. Voltando ao motor local.')">
-        <div class="hint">Sem chave, o app usa o <b>motor de prescrição FitCoach</b> (regras determinísticas de periodização) — funciona 100% offline.
+        <input class="inp mono" type="password" placeholder="sk-..." value="${esc(c.openaiKey)}"
+          onchange="setC('openaiKey',this.value);toast(this.value?'Chave salva. O gerador passa a usar GPT-4o.':'Chave removida. Voltando ao motor local.')">
+        <div class="hint">Sem chave, o app usa o <b>motor de prescrição FitCoach</b> (regras determinísticas) — funciona 100% offline.
         Com chave, a geração usa <b>GPT-4o com Structured Outputs</b> e o filtro de segurança continua rodando por cima.</div>
       </div>
+      <div class="field"><label>Metodologia usada por padrão</label>
+        <select class="inp" onchange="setC('templatePadrao',this.value)">
+          ${DB.templates.map(t => `<option value="${t.id}" ${c.templatePadrao === t.id ? 'selected' : ''}>${esc(t.nome)}</option>`).join('')}</select></div>
       <div class="divider"></div>
       <div class="stat-line"><span>Modelo</span><b class="mono">gpt-4o</b></div>
-      <div class="stat-line"><span>Saída</span><b class="mono">json_schema (strict)</b></div>
-      <div class="stat-line"><span>Fichas geradas por IA</span><b>${DB.treinos.filter(t => t.motor === 'gpt-4o').length}</b></div>
+      <div class="stat-line"><span>Fichas por IA</span><b>${DB.treinos.filter(t => t.motor === 'gpt-4o').length}</b></div>
       <div class="stat-line"><span>Fichas pelo motor local</span><b>${DB.treinos.filter(t => t.motor === 'local').length}</b></div>
-      <div class="alert alert-amber" style="margin-top:12px">${icon('shield', 16)}<div>Em produção, a chave nunca fica no app: a chamada sai de uma <b>Cloud Function</b> com a chave em <span class="mono">Secret Manager</span>.</div></div>
+      <div class="alert alert-amber" style="margin-top:12px">${icon('shield', 16)}<div>Em produção a chave nunca fica no app: a chamada sai de uma <b>Cloud Function</b> com a chave no <span class="mono">Secret Manager</span>.</div></div>
     </div>
 
     <div class="card">
-      <div class="card-head">${icon('gear', 18)}<h3>Meus dados</h3></div>
-      <div class="row"><div class="field"><label>Nome</label><input class="inp" value="${esc(DB.personal.nome)}" onchange="DB.personal.nome=this.value;save();render()"></div>
-      <div class="field"><label>CREF</label><input class="inp" value="${esc(DB.personal.cref)}" onchange="DB.personal.cref=this.value;save()"></div></div>
-      <div class="row" style="margin-top:14px"><div class="field"><label>E-mail</label><input class="inp" value="${esc(DB.personal.email)}" onchange="DB.personal.email=this.value;save()"></div>
-      <div class="field"><label>WhatsApp</label><input class="inp" value="${esc(DB.personal.phone)}" onchange="DB.personal.phone=this.value;save()"></div></div>
-      <div class="field" style="margin-top:14px"><label>Assinatura nas mensagens</label>
-        <input class="inp" value="${esc(DB.config.assinaturaWa)}" onchange="DB.config.assinaturaWa=this.value;save()"></div>
-      <div class="field"><label>Local padrão das sessões</label>
-        <input class="inp" value="${esc(DB.config.localPadrao)}" onchange="DB.config.localPadrao=this.value;save()"></div>
-      <div class="divider"></div>
+      <div class="card-head">${icon('doc', 18)}<h3>Conta e dados</h3></div>
+      <div class="stat-line"><span>Plano</span><b>${cap(p.plano)}</b></div>
+      <div class="stat-line"><span>Alunos cadastrados</span><b>${DB.alunos.length}</b></div>
+      <div class="stat-line"><span>Registros de carga</span><b>${DB.registros.length}</b></div>
+      <div class="stat-line"><span>Onde ficam os dados</span><b>Neste navegador</b></div>
+      <div class="alert alert-blue" style="margin:14px 0">${icon('alert', 16)}
+        <div>Nesta versão tudo é gravado no próprio aparelho. Limpar os dados do navegador apaga tudo — <b>exporte um backup</b> antes de qualquer limpeza. Na versão com Firebase, a sincronização e o backup são automáticos.</div></div>
       <div class="row">
         <button class="btn btn-sm" onclick="backupJSON()">${icon('doc', 15)} Exportar backup</button>
+        <label class="btn btn-sm" style="cursor:pointer">${icon('copy', 15)} Restaurar backup
+          <input type="file" accept="application/json" style="display:none" onchange="restaurarJSON(this)"></label>
         <button class="btn btn-sm btn-danger" onclick="if(confirm('Restaurar a base de demonstração? Todos os dados atuais serão perdidos.')){DB=seed();save();go('dash');toast('Base restaurada.')}">Restaurar demo</button>
       </div>
     </div>
   </div>`;
-  return { titulo: 'Metodologia e configurações', sub: 'As regras que a IA é obrigada a seguir', acoes: '', html };
+
+  return { titulo: 'Meu perfil', sub: 'Seus dados, sua marca e as preferências do sistema', acoes: '', html };
 };
+
+function toggleDia(d) {
+  const arr = DB.config.diasAtendimento || [];
+  const i = arr.indexOf(d);
+  if (i >= 0) arr.splice(i, 1); else arr.push(d);
+  DB.config.diasAtendimento = arr; save(); render();
+}
+function lerLogo(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      const k = 240 / Math.max(img.width, img.height);
+      c.width = img.width * k; c.height = img.height * k;
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      setP('logo', c.toDataURL('image/jpeg', 0.8)); render();
+      toast('Foto atualizada.', 'ok');
+    };
+    img.src = e.target.result;
+  };
+  r.readAsDataURL(f);
+}
+function restaurarJSON(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if (!d || !d.alunos || !d.personal) throw new Error('formato');
+      if (!confirm('Substituir todos os dados atuais pelo backup de ' + d.alunos.length + ' aluno(s)?')) return;
+      DB = d;
+      if (!DB.registros) DB.registros = [];
+      if (!DB.templates || !DB.templates.length) DB.templates = JSON.parse(JSON.stringify(TEMPLATES_PADRAO));
+      save(); go('dash'); toast('Backup restaurado.', 'ok');
+    } catch (err) { toast('Arquivo inválido — use um backup exportado pelo FitCoach.', 'err'); }
+  };
+  r.readAsText(f);
+}
 
 function backupJSON() {
   const url = URL.createObjectURL(new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' }));
@@ -2689,7 +2901,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 /* ---- cadastro / edição de aluno ---- */
 function modalAluno(id) {
-  const a = id ? aluno(id) : { nome: '', phone: '', email: '', nascimento: '', sexo: 'F', objetivo: 'hipertrofia', nivel: 'iniciante', diasSemana: 3, minutosSessao: 60, local: 'academia', restricoes: [], obs: '', status: 'ativo', valor: 400, diaVencimento: 5, templateId: DB.config.templatePadrao, avaliacoes: [] };
+  const a = id ? aluno(id) : { nome: '', phone: '', email: '', nascimento: '', sexo: 'F', objetivo: 'hipertrofia', nivel: 'iniciante', diasSemana: 3, minutosSessao: 60, local: 'academia', restricoes: [], obs: '', status: 'ativo', valor: DB.config.valorPadrao || 400, diaVencimento: DB.config.diaVencimentoPadrao || 5, templateId: DB.config.templatePadrao, avaliacoes: [] };
   openModal(`<div class="modal wide">
     <div class="modal-head">${icon('users', 20)}<h2>${id ? 'Editar aluno' : 'Novo aluno'}</h2>
       <button class="btn btn-icon btn-ghost x" onclick="closeModal()">${icon('x', 18)}</button></div>
@@ -3006,7 +3218,7 @@ function modalEvolucao(alunoId, exercicio) {
 
 /* ---- sessão / agenda ---- */
 function modalAula(id, alunoId, data) {
-  const a = id ? DB.aulas.find(x => x.id === id) : { alunoId: alunoId || (DB.alunos[0] || {}).id, data: data || hoje(), hora: '07:00', duracao: 60, local: DB.config.localPadrao, status: 'agendada', obs: '' };
+  const a = id ? DB.aulas.find(x => x.id === id) : { alunoId: alunoId || (DB.alunos[0] || {}).id, data: data || hoje(), hora: '07:00', duracao: DB.config.duracaoPadrao || 60, local: DB.config.localPadrao, status: 'agendada', obs: '' };
   openModal(`<div class="modal narrow">
     <div class="modal-head">${icon('calendar', 20)}<h2>${id ? 'Sessão agendada' : 'Nova sessão'}</h2>
       <button class="btn btn-icon btn-ghost x" onclick="closeModal()">${icon('x', 18)}</button></div>
@@ -3390,7 +3602,7 @@ function waCobranca(pid) {
       ? 'Passando para lembrar da mensalidade de *' + fmtComp(p.competencia) + '*, que venceu em ' + fmtData(p.vencimento) + ' (' + dias + ' dia(s) atrás).'
       : 'Passando para avisar que a mensalidade de *' + fmtComp(p.competencia) + '* vence em ' + fmtData(p.vencimento) + '.') + '\n\n' +
     '💰 Valor: *' + brl(p.valor) + '*\n' +
-    '🔑 Chave PIX: ' + DB.personal.email + '\n\n' +
+    '🔑 Chave PIX (' + (DB.config.tipoPix || 'E-mail') + '): ' + (DB.config.chavePix || DB.personal.email) + '\n\n' +
     'Assim que fizer, me manda o comprovante que eu dou baixa aqui. Qualquer coisa, é só falar!\n\n' +
     '💪 ' + DB.config.assinaturaWa;
   modalWa('Cobrança — ' + a.nome, a.phone, txt, fmtComp(p.competencia) + ' · ' + brl(p.valor));
@@ -3453,10 +3665,16 @@ function waLivre(id) {
         ${px ? `<button class="btn" style="justify-content:flex-start" onclick="waLembreteAula('${px.id}')">${icon('calendar', 16)} Lembrete da próxima sessão</button>` : ''}
         ${fin.st !== 'ok' ? `<button class="btn" style="justify-content:flex-start" onclick="waCobrancaAluno('${a.id}')">${icon('money', 16)} Cobrar mensalidade em atraso</button>` : ''}
         <button class="btn" style="justify-content:flex-start" onclick="waCheckin('${a.id}')">${icon('fire', 16)} Check-in de acompanhamento</button>
+        ${DB.config.boasVindas ? `<button class="btn" style="justify-content:flex-start" onclick="waBoasVindas('${a.id}')">${icon('star', 16)} Mensagem de boas-vindas</button>` : ''}
         ${t ? `<button class="btn" style="justify-content:flex-start" onclick="modalAppAluno('${a.id}')">${icon('send', 16)} Liberar o app do aluno</button>` : ''}
         <button class="btn btn-green" style="justify-content:flex-start" onclick="window.open('${waLink(a.phone, '')}','_blank');closeModal()">${icon('send', 16)} Abrir conversa em branco</button>
       </div>
     </div></div>`);
+}
+function waBoasVindas(id) {
+  const a = aluno(id);
+  const txt = 'Oi, ' + a.nome.split(' ')[0] + '! ' + DB.config.boasVindas + '\n\n💪 ' + DB.config.assinaturaWa;
+  modalWa('Boas-vindas — ' + a.nome, a.phone, txt);
 }
 function waCheckin(id) {
   const a = aluno(id);
@@ -3608,8 +3826,17 @@ function imprimirTreino(id) {
   .warn{background:#fff6e5;border-left:3px solid #d98b00;padding:10px 12px;margin:12px 0;font-size:12px}
   .note{background:#f6f6f6;padding:10px 12px;border-radius:6px;font-size:12px;margin-bottom:14px}
   .foot{margin-top:30px;border-top:1px solid #ddd;padding-top:12px;color:#666;font-size:11px}
+  .cab{display:flex;align-items:center;gap:12px;border-bottom:2px solid #111;padding-bottom:12px;margin-bottom:18px}
+  .cab .logo{width:52px;height:52px;object-fit:cover;border-radius:8px}
+  .cab .marca{font-size:16px;font-weight:700}
+  .cab .cref{font-size:11px;color:#666}
   @media print{body{padding:0}h2{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
   </style></head><body>
+  <div class="cab">
+    ${DB.personal.logo ? `<img src="${DB.personal.logo}" class="logo">` : ''}
+    <div><div class="marca">${esc(DB.personal.nome)}</div>
+      <div class="cref">${DB.personal.cref ? 'CREF ' + esc(DB.personal.cref) : ''}${DB.personal.especialidade ? ' · ' + esc(DB.personal.especialidade) : ''}</div></div>
+  </div>
   <h1>${esc(t.titulo)}</h1>
   <div class="sub"><b>${esc(a.nome)}</b> · ${esc(t.metodologia)} · ciclo de ${t.semanas} semanas · emitida em ${fmtData(t.criadoEm)}</div>
   ${(t.alertas || []).map(x => `<div class="warn"><b>${esc(x.titulo)}:</b> ${esc(x.texto)}</div>`).join('')}
