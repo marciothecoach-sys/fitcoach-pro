@@ -1596,6 +1596,26 @@ function seed() {
     }
   });
 
+  // ---- fichas já emitidas, para o retrato de risco fazer sentido
+  const treinos = [];
+  const comFicha = [
+    { id: 'al_1', dias: 12 }, { id: 'al_3', dias: 30 }, { id: 'al_4', dias: 8 },
+    { id: 'al_6', dias: 21 }, { id: 'al_9', dias: 75 }, { id: 'al_7', dias: 5 }
+  ];
+  comFicha.forEach(c => {
+    const al = alunos.find(x => x.id === c.id);
+    const tpl = TEMPLATES_PADRAO.find(t => t.id === al.templateId) || TEMPLATES_PADRAO[0];
+    const r = gerarTreinoLocal(al, tpl);
+    treinos.push({
+      id: uid('tr'), alunoId: al.id, personalId: 'usr_marcio',
+      titulo: 'Periodização ' + cap(al.objetivo) + ' — ' + r.divisao,
+      divisao: r.divisao, metodologia: r.metodologia, templateId: tpl.id,
+      sessoes: r.sessoes, progressao: r.progressao, alertas: r.alertas,
+      semanas: r.semanas, deloadNa: r.deloadNa, cadencia: r.cadencia, rir: r.rir,
+      motor: 'local', ativo: true, criadoEm: addDays(hj, -c.dias)
+    });
+  });
+
   return {
     personal: {
       uid: 'usr_marcio', nome: 'Márcio Coach', email: 'marciothecoach@gmail.com', phone: '11999990000',
@@ -1612,7 +1632,7 @@ function seed() {
       politica: 'Cancelamento com menos de 4 horas de antecedência conta como sessão realizada. Reposição no mesmo mês, conforme disponibilidade de agenda.',
       boasVindas: 'Seja bem-vindo(a)! Antes do primeiro treino vou te mandar a ficha de anamnese. Qualquer dúvida, é só chamar aqui.'
     },
-    alunos, aulas, pagamentos, registros, treinos: [], templates: JSON.parse(JSON.stringify(TEMPLATES_PADRAO))
+    alunos, aulas, pagamentos, registros, treinos, templates: JSON.parse(JSON.stringify(TEMPLATES_PADRAO))
   };
 }
 
@@ -1664,6 +1684,7 @@ var ROTA = 'dash', PARAM = null, SUBTAB = null;
 
 const ROTAS = [
   { id: 'dash', nome: 'Painel', ic: 'home' },
+  { id: 'retencao', nome: 'Retenção', ic: 'shield' },
   { id: 'alunos', nome: 'Alunos', ic: 'users' },
   { id: 'treinos', nome: 'Treinos', ic: 'dumbbell' },
   { id: 'agenda', nome: 'Agenda', ic: 'calendar' },
@@ -1674,16 +1695,18 @@ const ROTAS = [
 ];
 /* No celular a barra inferior mostra só o essencial; Exercícios e Metodologia
    ficam acessíveis pelos atalhos dentro de Meu perfil. */
-const ROTAS_MOBILE = ['dash', 'alunos', 'treinos', 'agenda', 'financeiro', 'perfil'];
+const ROTAS_MOBILE = ['dash', 'retencao', 'alunos', 'treinos', 'agenda', 'financeiro'];
 
 function go(r, p, sub) { ROTA = r; PARAM = p || null; SUBTAB = sub || null; render(); $('.content').scrollTop = 0; }
 
 function renderNav() {
   const inad = DB.pagamentos.filter(p => statusPag(p) === 'atrasado').length;
+  const risco = carteiraEmRisco().filter(r => r.nivel === 'alto').length;
+  const badge = r => (r === 'financeiro' && inad) ? inad : (r === 'retencao' && risco) ? risco : 0;
   $('#nav').innerHTML = ROTAS.map(r =>
     '<button class="nav-item' + (ROTA === r.id ? ' active' : '') + '" onclick="go(\'' + r.id + '\')">' +
     '<span class="ic">' + icon(r.ic) + '</span>' + r.nome +
-    (r.id === 'financeiro' && inad ? '<span class="nav-badge">' + inad + '</span>' : '') + '</button>').join('');
+    (badge(r.id) ? '<span class="nav-badge">' + badge(r.id) + '</span>' : '') + '</button>').join('');
   $('#tabbar').innerHTML = ROTAS.filter(r => ROTAS_MOBILE.indexOf(r.id) >= 0).map(r =>
     '<button class="' + (ROTA === r.id ? 'active' : '') + '" onclick="go(\'' + r.id + '\')">' + icon(r.ic, 21) + r.nome + '</button>').join('');
   $('#sbNome').textContent = DB.personal.nome;
@@ -1763,6 +1786,13 @@ VIEWS.dash = function () {
 
   const ranking = ativos.map(a => ({ a, f: frequencia(a.id, 30) })).filter(x => x.f !== null).sort((x, y) => y.f - x.f);
 
+  // retenção: o que realmente decide o mês
+  const carteira = carteiraEmRisco();
+  const riscoAlto = carteira.filter(r => r.nivel === 'alto');
+  const riscoMedio = carteira.filter(r => r.nivel === 'medio');
+  const emRisco = carteira.filter(r => r.nivel !== 'baixo').reduce((s, r) => s + r.aluno.valor, 0);
+  const fila = carteira.filter(r => r.nivel !== 'baixo').slice(0, 6);
+
   const html = `
   <div class="grid g4" style="margin-bottom:16px">
     <div class="kpi"><div class="kpi-ic" style="color:var(--accent)">${icon('users', 20)}</div>
@@ -1771,9 +1801,11 @@ VIEWS.dash = function () {
     <div class="kpi"><div class="kpi-ic" style="color:var(--green)">${icon('money', 20)}</div>
       <div class="lbl">Recebido em ${fmtComp(comp)}</div><div class="val">${brl(recebido)}</div>
       <div class="dt"><b class="${varia < 0 ? 'neg' : ''}">${varia >= 0 ? '+' : ''}${varia}%</b> vs ${fmtComp(compPrev)}</div></div>
-    <div class="kpi"><div class="kpi-ic" style="color:var(--amber)">${icon('clock', 20)}</div>
-      <div class="lbl">A receber no mês</div><div class="val">${brl(aReceber)}</div>
-      <div class="dt">${pagsMes.filter(p => statusPag(p) === 'pendente').length} mensalidades em aberto</div></div>
+    <div class="kpi sc" onclick="go('retencao')" style="${emRisco ? 'border-color:rgba(255,95,109,.4)' : ''}">
+      <div class="kpi-ic" style="color:var(--red)">${icon('shield', 20)}</div>
+      <div class="lbl">Receita em risco</div>
+      <div class="val" style="${emRisco ? 'color:var(--red)' : ''}">${brl(emRisco)}</div>
+      <div class="dt">${riscoAlto.length} aluno(s) prestes a sair · ${brl(aReceber)} a receber</div></div>
     <div class="kpi" style="${atrasado ? 'border-color:rgba(255,95,109,.4)' : ''}"><div class="kpi-ic" style="color:var(--red)">${icon('alert', 20)}</div>
       <div class="lbl">Inadimplência</div><div class="val" style="${atrasado ? 'color:var(--red)' : ''}">${brl(atrasado)}</div>
       <div class="dt">${atrasados.length} cobrança(s) vencida(s)</div></div>
@@ -1812,17 +1844,25 @@ VIEWS.dash = function () {
 
   <div class="grid g23">
     <div class="card">
-      <div class="card-head">${icon('alert', 18)}<h3>Precisa da sua atenção</h3>
-        <span class="tag ${alertas.length ? 't-amber' : 't-green'}">${alertas.length}</span></div>
-      ${alertas.length ? alertas.slice(0, 8).map(x => `
-        <div class="ex-row" style="padding:10px 0;border-top:1px solid var(--border)">
-          <div class="avatar" style="background:${corDe(x.al.nome)}">${inicials(x.al.nome)}</div>
-          <div class="ex-info"><b>${esc(x.al.nome)}</b><span>${esc(x.txt)}</span></div>
-          ${x.t === 'pag' ? `<button class="btn btn-sm btn-green" onclick="waCobranca('${x.pag.id}')">${icon('whatsapp', 15)} Cobrar</button>`
-      : x.t === 'sem_treino' ? `<button class="btn btn-sm btn-primary" onclick="modalGerar('${x.al.id}')">${icon('spark', 15)} Gerar treino</button>`
-        : `<button class="btn btn-sm" onclick="go('alunos','${x.al.id}')">Abrir</button>`}
+      <div class="card-head">${icon('shield', 18)}<h3>Quem você pode perder</h3>
+        <span class="tag ${riscoAlto.length ? 't-red' : riscoMedio.length ? 't-amber' : 't-green'}">${fila.length}</span>
+        <button class="btn btn-sm" onclick="go('retencao')">Ver tudo</button></div>
+      ${fila.length ? fila.map(r => `
+        <div style="padding:12px 0;border-top:1px solid var(--border)">
+          <div style="display:flex;align-items:center;gap:11px">
+            <div class="avatar" style="background:${corDe(r.aluno.nome)}">${inicials(r.aluno.nome)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <b style="font-size:14.2px">${esc(r.aluno.nome)}</b>
+                <span class="tag ${NIVEIS[r.nivel].tag}">${r.score}</span>
+                <span class="tag t-gray">${brl(r.aluno.valor)}/mês</span>
+              </div>
+              <span style="font-size:12.5px;color:var(--muted2)">${esc(r.fatores.length ? r.fatores[0].txt : '')}</span>
+            </div>
+            <button class="btn btn-sm ${r.nivel === 'alto' ? 'btn-green' : ''}" onclick="go('retencao')">${esc(r.acao.t.split('.')[0].split(' ').slice(0, 3).join(' '))}</button>
+          </div>
         </div>`).join('')
-      : `<div class="empty">${icon('check', 34)}<b>Tudo em dia</b>Nenhuma pendência operacional ou financeira.</div>`}
+      : `<div class="empty">${icon('check', 34)}<b>Carteira saudável</b>Ninguém em risco de sair. Aproveite para mandar o relatório de evolução de quem está indo bem.</div>`}
     </div>
 
     <div class="card">
@@ -1867,11 +1907,16 @@ VIEWS.alunos = function () {
     const f = frequencia(a.id, 30);
     const px = proximaAula(a.id);
     const tre = treinosDe(a.id)[0];
+    const rk = riscoDe(a.id);
     return `<tr class="sc" onclick="go('alunos','${a.id}')">
       <td><div class="person"><div class="avatar" style="background:${corDe(a.nome)}">${inicials(a.nome)}</div>
         <div style="min-width:0"><b>${esc(a.nome)}</b><span>${idade(a.nascimento)} anos · ${fone(a.phone)}</span></div></div></td>
+      <td><div style="min-width:84px">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+          <b style="font-size:12.5px;color:${NIVEIS[rk.nivel].cor}">${rk.score}</b>
+          <span style="font-size:11px;color:var(--muted2)">${NIVEIS[rk.nivel].rot}</span></div>
+        <div class="bar" style="height:5px"><i style="width:${rk.score}%;background:${NIVEIS[rk.nivel].cor}"></i></div></div></td>
       <td><span class="tag t-purple">${cap(a.objetivo)}</span></td>
-      <td class="nowrap"><span class="muted" style="font-size:13px">${cap(a.nivel.replace('intermediario', 'intermediário').replace('avancado', 'avançado'))} · ${a.diasSemana}x/sem</span></td>
       <td>${(a.restricoes || []).length ? `<span class="tag t-amber">${icon('shield', 12)} ${a.restricoes.length}</span>` : '<span class="muted">—</span>'}</td>
       <td>${f === null ? '<span class="muted">—</span>' : `<div style="min-width:76px"><div style="font-size:12.5px;font-weight:700;color:${f >= 85 ? 'var(--green)' : f >= 65 ? 'var(--amber)' : 'var(--red)'}">${f}%</div><div class="bar" style="height:5px"><i style="width:${f}%;background:${f >= 85 ? 'var(--green)' : f >= 65 ? 'var(--amber)' : 'var(--red)'}"></i></div></div>`}</td>
       <td>${tre ? `<span class="tag t-gray">${esc(tre.divisao)}</span>` : '<span class="tag t-red">sem ficha</span>'}</td>
@@ -1895,7 +1940,7 @@ VIEWS.alunos = function () {
       </div>
     </div>
     ${lista.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>Aluno</th><th>Objetivo</th><th>Perfil</th><th>Restrições</th><th>Frequência</th><th>Ficha atual</th><th>Próxima aula</th><th>Financeiro</th><th>Status</th><th></th></tr></thead>
+      <thead><tr><th>Aluno</th><th>Risco</th><th>Objetivo</th><th>Restrições</th><th>Frequência</th><th>Ficha atual</th><th>Próxima aula</th><th>Financeiro</th><th>Status</th><th></th></tr></thead>
       <tbody>${lista.map(linha).join('')}</tbody></table></div>`
       : `<div class="empty">${icon('users', 36)}<b>Nenhum aluno encontrado</b>Ajuste os filtros ou cadastre um novo aluno.</div>`}
   </div>`;
@@ -1936,11 +1981,20 @@ function viewAluno(id) {
       </div>
       <div class="mini-nav" style="flex-wrap:wrap;justify-content:flex-end">
         <button class="btn btn-sm" onclick="waLivre('${a.id}')">${icon('whatsapp', 15)} WhatsApp</button>
+        <button class="btn btn-sm" onclick="waRelatorio('${a.id}')">${icon('chart', 15)} Relatório do mês</button>
         <button class="btn btn-sm" onclick="modalAppAluno('${a.id}')">${icon('send', 15)} App do aluno</button>
         <button class="btn btn-sm" onclick="modalAluno('${a.id}')">${icon('edit', 15)} Editar</button>
         <button class="btn btn-sm btn-primary" onclick="modalGerar('${a.id}')">${icon('spark', 15)} Gerar treino</button>
       </div>
     </div>
+    ${(() => {
+      const rk = riscoDe(a.id), n = NIVEIS[rk.nivel];
+      return `<div class="alert ${rk.nivel === 'alto' ? 'alert-red' : rk.nivel === 'medio' ? 'alert-amber' : 'alert-green'}" style="margin-top:14px">
+        ${icon(rk.nivel === 'baixo' ? 'check' : 'alert', 18)}
+        <div style="flex:1"><b>${n.rot} de cancelamento · ${rk.score}/100</b> — ${esc(rk.acao.t)}.<br>
+        ${rk.fatores.length ? esc(rk.fatores.slice(0, 3).map(x => x.txt).join(' · ')) : 'Nenhum sinal de alerta no momento.'}</div>
+        <button class="btn btn-sm" onclick="go('retencao')">Ver plano</button></div>`;
+    })()}
     ${(a.restricoes || []).length ? `<div class="alert alert-amber" style="margin-top:14px">${icon('shield', 18)}
       <div><b>Restrições ativas:</b> ${a.restricoes.map(k => RESTRICOES[k] ? RESTRICOES[k].label : k).join(' · ')}.
       Toda ficha gerada filtra automaticamente os exercícios contraindicados.</div></div>` : ''}
@@ -3050,7 +3104,9 @@ function modalAvaliacao(id) {
 }
 function trocaProtocolo(id) {
   const a = aluno(id);
-  const p = PROTOCOLOS[document.getElementById('av_prot').value];
+  const selP = document.getElementById('av_prot');
+  if (!selP) return;
+  const p = PROTOCOLOS[selP.value];
   const ult = (a.avaliacoes || [])[a.avaliacoes.length - 1] || { dobras: {} };
   const ks = a.sexo === 'M' ? p.dobrasH : p.dobrasM;
   const box = document.getElementById('av_dobrasBox');
@@ -3141,7 +3197,9 @@ function modalRegistro(alunoId, exercicioPre) {
   setTimeout(() => { addSerie(); addSerie(); addSerie(); sugereCarga(alunoId); }, 30);
 }
 function addSerie() {
+  // o modal pode ter sido fechado antes do setTimeout disparar
   const box = document.getElementById('rg_series');
+  if (!box) return;
   const i = box.children.length;
   const ultimo = box.lastElementChild;
   const c = ultimo ? ultimo.querySelector('.s_carga').value : '';
@@ -3156,7 +3214,9 @@ function addSerie() {
   box.appendChild(d);
 }
 function sugereCarga(alunoId) {
-  const ex = document.getElementById('rg_ex').value;
+  const sel = document.getElementById('rg_ex');
+  if (!sel) return;
+  const ex = sel.value;
   const regs = registrosDe(alunoId, ex);
   const box = document.getElementById('rg_sug');
   if (!box) return;
@@ -3651,6 +3711,143 @@ function waLembretes() {
     </div></div>`);
 }
 
+
+/* ============================================================
+   RELATÓRIO MENSAL DE EVOLUÇÃO
+   ------------------------------------------------------------
+   O aluno não cancela quando não tem resultado — cancela quando
+   não ENXERGA o resultado. Este texto transforma o que já está
+   registrado em prova de valor, no dia 1 de cada mês.
+   ============================================================ */
+function dadosDoMes(id, comp) {
+  comp = comp || competencia(hoje());
+  const ini = comp + '-01';
+  const fim = comp + '-31';
+  const a = aluno(id);
+
+  const aulas = DB.aulas.filter(x => x.alunoId === id && x.data >= ini && x.data <= fim);
+  const feitas = aulas.filter(x => x.status === 'realizada').length;
+  const regs = DB.registros.filter(r => r.alunoId === id && r.data >= ini && r.data <= fim)
+    .sort((x, y) => x.data.localeCompare(y.data));
+
+  // evolução de carga por exercício dentro do mês
+  const porEx = {};
+  regs.forEach(r => { (porEx[r.exercicio] = porEx[r.exercicio] || []).push(r); });
+  const evolucoes = Object.keys(porEx).map(ex => {
+    const rs = porEx[ex];
+    const ini2 = cargaMax(rs[0]), fim2 = cargaMax(rs[rs.length - 1]);
+    return { ex, de: ini2, para: fim2, ganho: fim2 - ini2 };
+  }).filter(x => x.ganho > 0).sort((x, y) => y.ganho - x.ganho);
+
+  const ton = regs.reduce((s, r) => s + tonelagem(r), 0);
+
+  // recordes históricos batidos neste mês
+  const recordes = [];
+  Object.keys(porEx).forEach(ex => {
+    const todos = registrosDe(id, ex);
+    const antes = todos.filter(r => r.data < ini);
+    if (!antes.length) return;
+    const maxAntes = Math.max.apply(null, antes.map(cargaMax));
+    const maxAgora = Math.max.apply(null, porEx[ex].map(cargaMax));
+    if (maxAgora > maxAntes) recordes.push({ ex, carga: maxAgora });
+  });
+
+  // avaliação feita no período
+  const avs = (a.avaliacoes || []).slice().sort((x, y) => x.data.localeCompare(y.data));
+  const noMes = avs.filter(v => v.data >= ini && v.data <= fim);
+  let corpo = null;
+  if (noMes.length && avs.length > 1) {
+    const atual = noMes[noMes.length - 1];
+    const ant = avs[avs.indexOf(atual) - 1];
+    if (ant) {
+      const anos = idade(a.nascimento);
+      const g1 = calcGordura(ant, a.sexo, anos), g2 = calcGordura(atual, a.sexo, anos);
+      corpo = {
+        peso: atual.peso && ant.peso ? +(atual.peso - ant.peso).toFixed(1) : null,
+        gordura: (g1 != null && g2 != null) ? +(g2 - g1).toFixed(1) : null,
+        magra: (g1 != null && g2 != null && atual.peso && ant.peso)
+          ? +(massaMagra(atual, g2) - massaMagra(ant, g1)).toFixed(1) : null,
+        cintura: (atual.perimetros && ant.perimetros && atual.perimetros.cintura && ant.perimetros.cintura)
+          ? +(atual.perimetros.cintura - ant.perimetros.cintura).toFixed(1) : null
+      };
+    }
+  }
+  return { comp, feitas, agendadas: aulas.filter(x => x.status !== 'cancelada').length, evolucoes, recordes, ton, corpo, regs: regs.length };
+}
+
+function textoRelatorio(id, comp) {
+  const a = aluno(id);
+  const d = dadosDoMes(id, comp);
+  const nome = a.nome.split(' ')[0];
+  let s = '📊 *SEU MÊS EM NÚMEROS — ' + fmtComp(d.comp).toUpperCase() + '*\n' + a.nome + '\n\n';
+
+  s += '🏋️ *Treinos:* ' + d.feitas + (d.agendadas ? ' de ' + d.agendadas + ' sessões' : ' sessões') + '\n';
+  if (d.ton) s += '💪 *Peso total movimentado:* ' + Math.round(d.ton).toLocaleString('pt-BR') + ' kg\n';
+  s += '\n';
+
+  if (d.evolucoes.length) {
+    s += '📈 *ONDE VOCÊ FICOU MAIS FORTE*\n';
+    d.evolucoes.slice(0, 6).forEach(e => {
+      s += '• ' + e.ex + ': ' + e.de + ' kg → *' + e.para + ' kg* (+' + e.ganho + ')\n';
+    });
+    s += '\n';
+  }
+  if (d.recordes.length) {
+    s += '🏆 *RECORDE PESSOAL*\n';
+    d.recordes.slice(0, 4).forEach(r => { s += '• ' + r.ex + ': *' + r.carga + ' kg*\n'; });
+    s += '\n';
+  }
+  if (d.corpo) {
+    s += '📏 *COMPOSIÇÃO CORPORAL*\n';
+    if (d.corpo.peso != null) s += '• Peso: ' + (d.corpo.peso > 0 ? '+' : '') + d.corpo.peso + ' kg\n';
+    if (d.corpo.gordura != null) s += '• Gordura: ' + (d.corpo.gordura > 0 ? '+' : '') + d.corpo.gordura + ' p.p.\n';
+    if (d.corpo.magra != null) s += '• Massa magra: ' + (d.corpo.magra > 0 ? '+' : '') + d.corpo.magra + ' kg\n';
+    if (d.corpo.cintura != null) s += '• Cintura: ' + (d.corpo.cintura > 0 ? '+' : '') + d.corpo.cintura + ' cm\n';
+    s += '\n';
+  }
+
+  // fechamento honesto: elogia o que houve, chama para o que falta
+  if (!d.feitas && !d.evolucoes.length) {
+    s += 'Esse mês passou em branco no registro, ' + nome + '. Bora retomar? Me diz um dia desta semana que eu já deixo separado.\n\n';
+  } else if (d.evolucoes.length >= 3) {
+    s += 'Isso não é sorte, ' + nome + ' — é consistência. Cada quilo a mais aí em cima é você aparecendo mesmo nos dias em que não deu vontade. 👏\n\n';
+  } else if (d.feitas) {
+    s += 'Bom mês, ' + nome + '. Seguimos ajustando a carga para o próximo ciclo render ainda mais.\n\n';
+  }
+  s += '💪 ' + DB.config.assinaturaWa;
+  return s;
+}
+
+function waRelatorio(id, comp) {
+  const a = aluno(id); if (!a) return;
+  const d = dadosDoMes(id, comp);
+  const txt = textoRelatorio(id, comp);
+  modalWa('Relatório de ' + fmtComp(d.comp) + ' — ' + a.nome, a.phone, txt,
+    d.feitas + ' treinos · ' + d.evolucoes.length + ' exercício(s) com ganho de carga');
+}
+
+/* Envio em lote: o ritual do dia 1. */
+function waRelatoriosDoMes() {
+  const comp = competencia(hoje());
+  const alunos = DB.alunos.filter(a => a.status === 'ativo')
+    .map(a => ({ a, d: dadosDoMes(a.id, comp) }))
+    .sort((x, y) => y.d.evolucoes.length - x.d.evolucoes.length);
+  openModal(`<div class="modal">
+    <div class="modal-head" style="color:var(--green)">${icon('chart', 20)}<div>
+      <h2 style="color:var(--text)">Relatórios de ${fmtComp(comp)}</h2>
+      <div style="font-size:12.5px;color:var(--muted2)">A prova de valor que segura o aluno</div></div>
+      <button class="btn btn-icon btn-ghost x" onclick="closeModal()">${icon('x', 18)}</button></div>
+    <div class="modal-body">
+      <div class="alert alert-blue" style="margin-bottom:14px">${icon('spark', 18)}
+        <div>Mande no primeiro dia do mês. Aluno que enxerga o próprio progresso não acha caro — e ainda posta o print.</div></div>
+      ${alunos.map(x => `<div class="ex-row" style="padding:11px 0;border-top:1px solid var(--border)">
+        <div class="avatar" style="background:${corDe(x.a.nome)}">${inicials(x.a.nome)}</div>
+        <div class="ex-info"><b>${esc(x.a.nome)}</b>
+          <span>${x.d.feitas} treinos · ${x.d.evolucoes.length} ganho(s) de carga${x.d.recordes.length ? ' · ' + x.d.recordes.length + ' recorde(s)' : ''}</span></div>
+        <button class="btn btn-sm btn-green" onclick="waRelatorio('${x.a.id}')">${icon('whatsapp', 15)}</button></div>`).join('')}
+    </div></div>`);
+}
+
 function waLivre(id) {
   const a = aluno(id); if (!a) return;
   const t = treinosDe(id)[0];
@@ -3664,6 +3861,7 @@ function waLivre(id) {
         ${t ? `<button class="btn" style="justify-content:flex-start" onclick="waTreino('${t.id}')">${icon('doc', 16)} Enviar ficha de treino atual</button>` : ''}
         ${px ? `<button class="btn" style="justify-content:flex-start" onclick="waLembreteAula('${px.id}')">${icon('calendar', 16)} Lembrete da próxima sessão</button>` : ''}
         ${fin.st !== 'ok' ? `<button class="btn" style="justify-content:flex-start" onclick="waCobrancaAluno('${a.id}')">${icon('money', 16)} Cobrar mensalidade em atraso</button>` : ''}
+        <button class="btn" style="justify-content:flex-start" onclick="waRelatorio('${a.id}')">${icon('chart', 16)} Relatório de evolução do mês</button>
         <button class="btn" style="justify-content:flex-start" onclick="waCheckin('${a.id}')">${icon('fire', 16)} Check-in de acompanhamento</button>
         ${DB.config.boasVindas ? `<button class="btn" style="justify-content:flex-start" onclick="waBoasVindas('${a.id}')">${icon('star', 16)} Mensagem de boas-vindas</button>` : ''}
         ${t ? `<button class="btn" style="justify-content:flex-start" onclick="modalAppAluno('${a.id}')">${icon('send', 16)} Liberar o app do aluno</button>` : ''}
@@ -3854,8 +4052,270 @@ function imprimirTreino(id) {
   setTimeout(() => w.print(), 350);
 }
 
+/* A inicialização ficou no último módulo (11_retencao.js),
+   porque o painel e a navegação já consultam o motor de risco. */
 /* ============================================================
-   INICIALIZAÇÃO
+   MOTOR DE RISCO DE CANCELAMENTO
+   ------------------------------------------------------------
+   Aluno não cancela de uma hora para outra: ele falta, some,
+   estaciona na carga, atrasa a mensalidade — e só depois pede
+   para pausar. Todos esses sinais já estão no sistema; aqui eles
+   viram um número e, principalmente, uma ação com prazo.
+
+   O score é uma soma ponderada de sinais, teto em 100.
+   Os pesos vêm da prática: sumiço e inadimplência pesam mais que
+   platô, porque platô se resolve na próxima sessão — sumiço não.
+   ============================================================ */
+
+const NIVEIS = {
+  alto: { rot: 'Risco alto', cor: 'var(--red)', tag: 't-red', min: 60 },
+  medio: { rot: 'Atenção', cor: 'var(--amber)', tag: 't-amber', min: 35 },
+  baixo: { rot: 'Estável', cor: 'var(--green)', tag: 't-green', min: 0 }
+};
+
+function diasDesdeUltimaSessao(id) {
+  const feitas = DB.aulas.filter(a => a.alunoId === id && a.status === 'realizada' && a.data <= hoje())
+    .sort((a, b) => b.data.localeCompare(a.data));
+  return feitas.length ? diasEntre(feitas[0].data, hoje()) : null;
+}
+function faltasRecentes(id, dias) {
+  const ini = addDays(hoje(), -(dias || 14));
+  return DB.aulas.filter(a => a.alunoId === id && a.status === 'faltou' && a.data >= ini).length;
+}
+function diasSemAvaliacao(id) {
+  const a = aluno(id);
+  const avs = (a.avaliacoes || []).slice().sort((x, y) => y.data.localeCompare(x.data));
+  return avs.length ? diasEntre(avs[0].data, hoje()) : null;
+}
+function dorRecente(id, dias) {
+  const ini = addDays(hoje(), -(dias || 21));
+  const rs = DB.registros.filter(r => r.alunoId === id && r.data >= ini && (r.dor || 0) >= 5);
+  return rs.length ? Math.max.apply(null, rs.map(r => r.dor)) : 0;
+}
+
+/* Devolve score, os fatores que o compõem e a ação recomendada. */
+function riscoDe(id) {
+  const a = aluno(id);
+  if (!a) return null;
+  const f = [];
+  const add = (peso, txt, tipo) => f.push({ peso, txt, tipo });
+
+  // --- vínculo com o treino ---
+  const treinos = treinosDe(id);
+  if (!treinos.length) add(18, 'Está sem ficha de treino', 'ficha');
+  else {
+    const t = treinos[0];
+    const idadeFicha = diasEntre(t.criadoEm, hoje());
+    if (idadeFicha > t.semanas * 7) add(10, 'Ficha vencida há ' + (idadeFicha - t.semanas * 7) + ' dias', 'ficha');
+  }
+
+  // --- presença ---
+  const freq = frequencia(id, 30);
+  if (freq !== null) {
+    if (freq < 50) add(25, 'Frequência de apenas ' + freq + '% no mês', 'presenca');
+    else if (freq < 70) add(15, 'Frequência de ' + freq + '% no mês', 'presenca');
+    else if (freq < 85) add(6, 'Frequência de ' + freq + '%, abaixo do ideal', 'presenca');
+  }
+  const fal = faltasRecentes(id, 14);
+  if (fal >= 2) add(18, fal + ' faltas nos últimos 14 dias', 'presenca');
+
+  const sumiu = diasDesdeUltimaSessao(id);
+  if (sumiu === null) add(12, 'Nunca registrou uma sessão realizada', 'presenca');
+  else if (sumiu > 21) add(26, 'Sem treinar há ' + sumiu + ' dias', 'sumiu');
+  else if (sumiu > 14) add(20, 'Sem treinar há ' + sumiu + ' dias', 'sumiu');
+
+  // --- financeiro ---
+  const fin = situacaoFinanceira(id);
+  if (fin.st === 'atrasado') {
+    const p = pagsDe(id).find(x => statusPag(x) === 'atrasado');
+    const d = p ? diasEntre(p.vencimento, hoje()) : 0;
+    add(d > 15 ? 25 : 20, 'Mensalidade atrasada há ' + d + ' dias (' + brl(fin.total) + ')', 'pagamento');
+  }
+
+  // --- progresso ---
+  const exs = exerciciosComRegistro(id);
+  const platos = exs.filter(x => x.estagnado);
+  if (platos.length) add(12, 'Platô em ' + platos.map(x => x.exercicio).join(', '), 'plato');
+
+  const dor = dorRecente(id, 21);
+  if (dor) add(15, 'Relatou dor ' + dor + '/10 nas últimas semanas', 'dor');
+
+  const semAv = diasSemAvaliacao(id);
+  if (semAv === null) add(10, 'Nunca fez avaliação física', 'avaliacao');
+  else if (semAv > 90) add(8, 'Sem avaliação física há ' + semAv + ' dias', 'avaliacao');
+
+  const ultReg = registrosDe(id);
+  if (ultReg.length && diasEntre(ultReg[ultReg.length - 1].data, hoje()) > 21)
+    add(8, 'Não registra carga há mais de 3 semanas', 'registro');
+
+  // --- contexto ---
+  const casa = diasEntre(a.inicio, hoje());
+  if (casa < 90) add(10, 'Aluno novo (' + casa + ' dias) — fase de maior evasão', 'novo');
+  if (+a.sono <= 2 || +a.estresse >= 4) add(5, 'Sono ruim ou estresse alto declarado', 'contexto');
+  if (a.status === 'pausado') add(30, 'Já está com o plano pausado', 'pausado');
+
+  const score = Math.min(100, f.reduce((s, x) => s + x.peso, 0));
+  const nivel = score >= NIVEIS.alto.min ? 'alto' : score >= NIVEIS.medio.min ? 'medio' : 'baixo';
+  f.sort((x, y) => y.peso - x.peso);
+
+  return { aluno: a, score, nivel, fatores: f, acao: acaoPara(a, f, nivel) };
+}
+
+/* A ação nasce do fator de maior peso — é o que resolve primeiro. */
+function acaoPara(a, fatores, nivel) {
+  const nome = a.nome.split(' ')[0];
+  const tipo = fatores.length ? fatores[0].tipo : 'ok';
+  const A = {
+    pausado: { t: 'Ligue para entender o motivo da pausa', d: 'Plano pausado é cancelamento em câmera lenta. Ligue, entenda o que mudou (dinheiro, horário, motivação) e ofereça uma saída — frequência menor, valor menor, retomada com data marcada.', b: 'wa' },
+    sumiu: { t: 'Ligue hoje. Mensagem não traz aluno sumido de volta', d: nome + ' parou de aparecer. Quanto mais dias passam, mais constrangido ele fica de voltar — e o constrangimento vira cancelamento. Ligue, não cobre presença, pergunte o que aconteceu e já marque um dia.', b: 'wa' },
+    presenca: { t: 'Reduza o atrito antes que vire desistência', d: 'A frequência caiu. Vale checar se o horário ainda funciona, se o treino está longo demais para a rotina dele ou se algo desanimou. Às vezes trocar 60 por 40 minutos salva o aluno.', b: 'wa' },
+    pagamento: { t: 'Resolva a cobrança antes que vire desculpa para sair', d: 'Aluno inadimplente evita o personal por vergonha, falta mais e acaba saindo. Mande a cobrança com tom leve e ofereça combinar uma data — o problema quase nunca é o valor.', b: 'cobrar' },
+    ficha: { t: 'Entregue uma ficha nova', d: 'Treinar sem ficha atual, ou com ficha vencida, tira o senso de progresso. Gere a próxima periodização e mande pelo WhatsApp — é o gesto mais barato de reengajamento que existe.', b: 'treino' },
+    dor: { t: 'Cheque a dor antes do próximo treino', d: nome + ' relatou dor. Isso é sinal amarelo em dois sentidos: risco de lesão e risco de abandono, porque ninguém continua o que dói. Converse antes da próxima sessão e ajuste a ficha.', b: 'wa' },
+    plato: { t: 'Quebre o platô — e mostre que você percebeu', d: 'Carga parada é a principal causa de "não estou mais evoluindo". Troque a variação, aplique um deload ou suba uma série. E diga ao aluno que você notou: isso vale tanto quanto o ajuste.', b: 'treino' },
+    avaliacao: { t: 'Agende uma reavaliação', d: 'Sem número novo, o aluno não enxerga resultado — e quem não enxerga resultado acha caro. Reavaliação é a prova de valor mais barata que você tem.', b: 'avaliar' },
+    registro: { t: 'Traga o registro de carga de volta', d: 'Sem registro, você perde a evolução e ele perde o senso de progresso. Mande o app do aluno de novo e peça para marcar as séries por duas semanas.', b: 'app' },
+    novo: { t: 'Acompanhe de perto os primeiros 90 dias', d: 'A maior parte da evasão acontece no primeiro trimestre. Um check-in por semana nesse período vale mais do que qualquer ação depois.', b: 'wa' },
+    contexto: { t: 'Ajuste a carga ao momento de vida', d: 'Sono ruim e estresse alto derrubam a recuperação e a adesão. Vale reduzir volume por duas semanas em vez de insistir e ver o aluno sumir.', b: 'wa' },
+    ok: { t: 'Mantenha o vínculo com prova de valor', d: 'Frequência boa, carga evoluindo e pagamento em dia. É exatamente quem está bem que costuma ser esquecido — mande o relatório de evolução do mês e reforce o resultado.', b: 'relatorio' }
+  };
+  return A[tipo] || A.ok;
+}
+
+function carteiraEmRisco() {
+  return DB.alunos.filter(a => a.status !== 'inativo')
+    .map(a => riscoDe(a.id))
+    .sort((x, y) => y.score - x.score);
+}
+function receitaEmRisco() {
+  return carteiraEmRisco().filter(r => r.nivel !== 'baixo').reduce((s, r) => s + r.aluno.valor, 0);
+}
+
+/* ---------------- TELA ---------------- */
+VIEWS.retencao = function () {
+  const lista = carteiraEmRisco();
+  const alto = lista.filter(r => r.nivel === 'alto');
+  const medio = lista.filter(r => r.nivel === 'medio');
+  const estavel = lista.filter(r => r.nivel === 'baixo');
+  const emRisco = receitaEmRisco();
+  const mrr = DB.alunos.filter(a => a.status === 'ativo').reduce((s, a) => s + a.valor, 0);
+  const perm = DB.alunos.length ? DB.alunos.reduce((s, a) => s + diasEntre(a.inicio, hoje()), 0) / DB.alunos.length / 30 : 0;
+
+  const botao = (r) => {
+    const a = r.aluno;
+    const B = {
+      wa: `<button class="btn btn-sm btn-green" onclick="waCheckin('${a.id}')">${icon('whatsapp', 15)} Falar agora</button>`,
+      cobrar: `<button class="btn btn-sm btn-green" onclick="waCobrancaAluno('${a.id}')">${icon('whatsapp', 15)} Cobrar</button>`,
+      treino: `<button class="btn btn-sm btn-primary" onclick="modalGerar('${a.id}')">${icon('spark', 15)} Nova ficha</button>`,
+      avaliar: `<button class="btn btn-sm btn-primary" onclick="modalAvaliacao('${a.id}')">${icon('ruler', 15)} Reavaliar</button>`,
+      app: `<button class="btn btn-sm" onclick="modalAppAluno('${a.id}')">${icon('send', 15)} App do aluno</button>`,
+      relatorio: `<button class="btn btn-sm btn-green" onclick="waRelatorio('${a.id}')">${icon('chart', 15)} Mandar relatório</button>`
+    };
+    return B[r.acao.b] || B.wa;
+  };
+
+  const cartao = (r) => {
+    const a = r.aluno, n = NIVEIS[r.nivel];
+    return `<div class="card" style="margin-bottom:12px;border-left:3px solid ${n.cor}">
+      <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+        <div class="avatar" style="width:44px;height:44px;flex:0 0 44px;font-size:15px;background:${corDe(a.nome)}">${inicials(a.nome)}</div>
+        <div style="flex:1;min-width:200px">
+          <div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">
+            <b class="sc" style="font-size:16px;letter-spacing:-.3px" onclick="go('alunos','${a.id}')">${esc(a.nome)}</b>
+            <span class="tag ${n.tag}">${n.rot} · ${r.score}</span>
+            <span class="tag t-gray">${brl(a.valor)}/mês</span>
+            ${a.status === 'pausado' ? '<span class="tag t-amber">pausado</span>' : ''}
+          </div>
+          <div class="bar" style="margin:9px 0 10px;max-width:340px"><i style="width:${r.score}%;background:${n.cor}"></i></div>
+          <div class="chips">
+            ${r.fatores.slice(0, 4).map(x => `<span class="tag ${x.peso >= 18 ? 't-red' : x.peso >= 10 ? 't-amber' : 't-gray'}">${esc(x.txt)}</span>`).join('')}
+            ${r.fatores.length > 4 ? `<span class="tag t-gray">+${r.fatores.length - 4}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="alert ${r.nivel === 'alto' ? 'alert-red' : r.nivel === 'medio' ? 'alert-amber' : 'alert-green'}" style="margin:14px 0 0">
+        ${icon(r.nivel === 'baixo' ? 'check' : 'alert', 18)}
+        <div style="flex:1"><b>${esc(r.acao.t)}</b><br>${esc(r.acao.d)}</div>
+      </div>
+      <div class="row" style="margin-top:12px;justify-content:flex-end">
+        <button class="btn btn-sm btn-ghost" onclick="go('alunos','${a.id}')">Abrir ficha</button>
+        ${botao(r)}
+      </div>
+    </div>`;
+  };
+
+  const html = `
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="kpi" style="${emRisco ? 'border-color:rgba(255,95,109,.4)' : ''}">
+      <div class="kpi-ic" style="color:var(--red)">${icon('alert', 20)}</div>
+      <div class="lbl">Receita em risco</div>
+      <div class="val" style="${emRisco ? 'color:var(--red)' : ''}">${brl(emRisco)}</div>
+      <div class="dt">${mrr ? Math.round(emRisco / mrr * 100) : 0}% da sua receita mensal</div></div>
+    <div class="kpi"><div class="kpi-ic" style="color:var(--red)">${icon('fire', 20)}</div>
+      <div class="lbl">Risco alto</div><div class="val">${alto.length}</div>
+      <div class="dt">exigem contato hoje</div></div>
+    <div class="kpi"><div class="kpi-ic" style="color:var(--amber)">${icon('clock', 20)}</div>
+      <div class="lbl">Atenção</div><div class="val">${medio.length}</div>
+      <div class="dt">resolva nesta semana</div></div>
+    <div class="kpi"><div class="kpi-ic" style="color:var(--green)">${icon('shield', 20)}</div>
+      <div class="lbl">Permanência média</div><div class="val">${perm.toFixed(0)} m</div>
+      <div class="dt">${estavel.length} alunos estáveis</div></div>
+  </div>
+
+  ${alto.length ? `<div class="alert alert-red" style="margin-bottom:16px">${icon('alert', 18)}
+    <div><b>${brl(alto.reduce((s, r) => s + r.aluno.valor, 0))} por mês estão em risco alto.</b>
+    Perder ${alto.length === 1 ? 'esse aluno' : 'esses ' + alto.length + ' alunos'} custa
+    ${brl(alto.reduce((s, r) => s + r.aluno.valor, 0) * 12)} em um ano — sem contar o que você gastaria para repor.
+    Comece de cima: a lista já está na ordem certa.</div></div>`
+      : `<div class="alert alert-green" style="margin-bottom:16px">${icon('check', 18)}
+    <div><b>Nenhum aluno em risco alto.</b> Bom momento para mandar o relatório de evolução de quem está indo bem — retenção também se constrói quando está tudo certo.</div></div>`}
+
+  ${alto.length ? `<div class="lbl" style="margin:22px 0 12px;color:var(--red)">Ligue hoje</div>${alto.map(cartao).join('')}` : ''}
+  ${medio.length ? `<div class="lbl" style="margin:22px 0 12px;color:var(--amber)">Resolva esta semana</div>${medio.map(cartao).join('')}` : ''}
+
+  ${estavel.length ? `<div class="lbl" style="margin:22px 0 12px;color:var(--green)">Estáveis</div>
+    <div class="card"><div class="tbl-wrap"><table>
+      <thead><tr><th>Aluno</th><th class="tc">Risco</th><th>Frequência</th><th class="tr">Mensalidade</th><th></th></tr></thead><tbody>
+      ${estavel.map(r => `<tr class="sc" onclick="go('alunos','${r.aluno.id}')">
+        <td><div class="person"><div class="avatar" style="background:${corDe(r.aluno.nome)}">${inicials(r.aluno.nome)}</div>
+          <div><b>${esc(r.aluno.nome)}</b><span>${r.fatores.length ? esc(r.fatores[0].txt) : 'nenhum sinal de alerta'}</span></div></div></td>
+        <td class="tc"><span class="tag t-green">${r.score}</span></td>
+        <td>${(() => { const f = frequencia(r.aluno.id, 30); return f === null ? '<span class="muted">—</span>' : `<div style="min-width:70px"><div style="font-size:12.5px;font-weight:700">${f}%</div><div class="bar" style="height:5px"><i style="width:${f}%;background:var(--green)"></i></div></div>`; })()}</td>
+        <td class="tr">${brl(r.aluno.valor)}</td>
+        <td class="tr" onclick="event.stopPropagation()"><button class="btn btn-sm btn-ghost" title="Relatório de evolução" onclick="waRelatorio('${r.aluno.id}')">${icon('chart', 15)}</button></td>
+      </tr>`).join('')}
+    </tbody></table></div></div>` : ''}
+
+  <div class="card" style="margin-top:18px">
+    <div class="card-head">${icon('doc', 18)}<h3>Como o risco é calculado</h3></div>
+    <div style="font-size:13.5px;color:var(--muted);line-height:1.6">
+      O score soma sinais que já existem no seu sistema, com pesos diferentes. Sumiço e inadimplência pesam mais
+      que platô, porque platô se resolve na próxima sessão — sumiço, não.
+    </div>
+    <div class="grid g3" style="margin-top:14px">
+      ${[['Sem treinar há mais de 14 dias', 'até 26'], ['Frequência abaixo de 50%', '25'],
+      ['Mensalidade atrasada', 'até 25'], ['Plano pausado', '30'],
+      ['Faltas seguidas em 14 dias', '18'], ['Sem ficha de treino', '18'],
+      ['Dor relatada nas últimas semanas', '15'], ['Platô de carga', '12'],
+      ['Aluno com menos de 90 dias', '10'], ['Ficha vencida', '10'],
+      ['Sem avaliação há mais de 90 dias', '8'], ['Sem registrar carga há 3 semanas', '8']]
+      .map(x => `<div style="display:flex;justify-content:space-between;gap:10px;background:var(--surface2);border-radius:9px;padding:9px 11px">
+          <span style="font-size:12.5px;color:var(--muted)">${x[0]}</span><b style="font-size:12.5px">+${x[1]}</b></div>`).join('')}
+    </div>
+    <div class="hint" style="margin-top:12px">Acima de 60 pontos o aluno entra em risco alto; entre 35 e 59, em atenção. Os pesos são referência da prática, não verdade absoluta — ajuste conforme sua realidade.</div>
+  </div>`;
+
+  return {
+    titulo: 'Retenção',
+    sub: emRisco ? brl(emRisco) + ' em risco · ' + alto.length + ' aluno(s) para contatar hoje' : 'Nenhum aluno em risco alto',
+    acoes: `<button class="btn btn-sm" onclick="waRelatoriosDoMes()">${icon('chart', 15)} Relatórios do mês</button>`,
+    html
+  };
+};
+
+
+/* ============================================================
+   INICIALIZAÇÃO — último módulo carregado
    ============================================================ */
 render();
 </script>
